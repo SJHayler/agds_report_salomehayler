@@ -424,7 +424,7 @@ ggplot(validation) +
 ```
 
 ## spatial scaling
-```{r }
+```{r, eval=FALSE }
 # use model across larger landscape
 # 1. Passwort einmal speichern (erstes Mal fragt nach Keyring-Passwort)
 key_set(service = "earth_data_user")  
@@ -439,13 +439,19 @@ my_password  # zeigt das gespeicherte Passwort an
 # attempting to set a key
 ```
 
-```{r }
+```{r, eval=FALSE }
 # To see whether the setup has worked, you can try to get the 
 # metadata of the product DAYMET v4:
 rs_layers("DAYMET.004")
 ```
 
-```{r }
+```{r, eval=FALSE }
+rs_set_key(user = "saja_0610", # your username NASA
+           password = "Oleleo2519" # your passwort NASA
+)
+```
+
+```{r, eval=FALSE }
 # Define the bounding box coordinates
 xmin <- -72; xmax <- -70
 ymin <- 42; ymax <- 44
@@ -458,14 +464,14 @@ coords <- matrix(c(
 ), ncol = 2, byrow = TRUE)
 ```
 
-```{r }
+```{r, eval=FALSE }
 # Create a simple feature geometry collection with CRS
 roi <- st_sf(geometry = st_sfc(st_polygon(list(coords)), 
                                crs = 4326)  # WGS 84)
 )
 ```
 
-```{r }
+```{r, eval=FALSE }
 # build the area based request/task
 df <- data.frame(
   task = "DAYMET.004_2012",
@@ -477,19 +483,18 @@ df <- data.frame(
   product = "DAYMET.004",
   layer = c("tmax", "tmin")
 )
+```
+
+```{r, eval=FALSE }
 task <- rs_build_task(
   df = df,
   roi = roi,
   format = "netcdf4"
 )
 ```
-```{r }
-rs_set_key(user = "saja_0610", # your username NASA
-           password = "Oleleo2519" # your passwort NASA
-)
-```
+
 request the task to be executed (takes some time -> see https://appeears.earthdatacloud.nasa.gov/explore)
-```{r }
+```{r, eval=FALSE }
 # request the task to be executed
 rs_request(
   request = task,
@@ -519,7 +524,7 @@ r1["tmax"]
 r1["tmin"]
 
 #nicht machen!!
-```{r }
+```{r, eval=FALSE }
 ## in case there are issues with creating a NASA user account or the download
 local_file <- tempfile(fileext = ".nc")
 download.file("https://github.com/fabern/handfull_of_pixels/raw/refs/heads/main/data/DAYMET.004_2012/DAYMET.004_1km_aid0001.nc",
@@ -527,7 +532,7 @@ download.file("https://github.com/fabern/handfull_of_pixels/raw/refs/heads/main/
 r1 <- terra::rast(local_file)
 ```
 
-```{r }
+```{r, eval=FALSE }
 # Assign the correct CRS, e.g. WGS84 (EPSG:4326)
 terra::crs(r1) <- "epsg:4326"
 ```
