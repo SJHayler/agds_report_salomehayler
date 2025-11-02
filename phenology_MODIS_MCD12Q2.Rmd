@@ -1,0 +1,236 @@
+---
+title: "phenology_MODIS_MCD12Q2"
+author: "Salome Hayler"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, load libraries}
+# library geodata -> access to shuttle radar topography mission (SRTM)
+library(geodata)
+library(MODISTools)
+```
+
+```{r}
+# download SRTM data
+# This stores file srtm_38_03.tif in 
+# subfolder elevation of tempdir()
+geodata::elevation_3s(
+  lat = 46.6756, ## hier coordinaten zu boston ändern
+  lon = 7.85480,
+  path = tempdir()
+)
+```
+
+```{r}
+# read the downloaded data
+# use file.path() to combine
+# a directory path with a filename
+dem <- terra::rast(
+  file.path(
+    tempdir(),
+    "elevation",
+    "srtm_38_03.tif"
+  )
+)
+```
+
+download MODIS land surface phenology product (MCD12Q2) 
+```{r}
+# download and save phenology data
+phenology <- MODISTools::mt_subset(
+  product = "MCD12Q2",
+  lat = 46.6756,
+  lon = 7.85480,
+  band = "Greenup.Num_Modes_01",
+  start = "2012-01-01",
+  end = "2012-12-31",
+  km_lr = 100,
+  km_ab = 100,
+  site_name = "swiss",
+  internal = TRUE,
+  progress = FALSE
+)
+```
+
+preprocessing is needed because of: 
+MODIS data comes as a tidy data frame
+MODIS data might have missing values
+DEM data extent is larger than MODIS coverage
+Two non-matching grids (DEM ~ MODIS)
+
+```{r}
+#### preprocessing MODIS ####
+# screening of data # convert integer to day-of-year values
+phenology <- phenology |>
+  mutate(
+    value = ifelse(value > 32656, NA, value),
+    value = as.numeric(format(as.Date("1970-01-01") + value, "%j")),
+    value = ifelse (value < 200, value, NA)
+  )
+```
+
+```{r}
+# convert tidy data into geospatial (terra SpatRast format)
+phenology_raster <- MODISTools::mt_to_terra(
+  phenology,
+  reproject = TRUE
+)
+```
+
+```{r}
+# crop the DEM correspond to the size of the coverage of the MODIS phenology
+dem <- terra::crop(
+  x = dem,
+  y = phenology_raster
+)
+```
+
+```{r}
+# grid of DEM and MODIS data do not align -> resampling of data to a common grid required
+# grid of the highest resolution data as a template for this resampling, 
+# taking the average across the extent of a MODIS pixel
+# resample the dem using
+# the mean DEM value in a
+# MODIS pixel
+dem <- terra::resample(
+  x = dem,
+  y = phenology_raster,
+  method = "average"
+)
+```
+
+```{r}
+# mask the locations which
+# have no data
+dem <- terra::mask(
+  dem,
+  is.na(phenology_raster),
+  maskvalues = TRUE
+)
+```
+
+for interpretation of results: useful to look at different responses by land 
+cover class
+```{r}
+# therefore only download MODIS land cover product 2012
+# download and save land cover data
+land_cover <- MODISTools::mt_subset(
+  product = "MCD12Q1",
+  lat = 46.6756,
+  lon = 7.85480,
+  band = "LC_Type1",
+  start = "2012-01-01",
+  end = "2012-12-31",
+  km_lr = 100,
+  km_ab = 100,
+  site_name = "swiss",
+  internal = TRUE,
+  progress = FALSE
+)
+```
+
+```{r}
+# now, convert to geospatial format as before
+land_cover_raster <- MODISTools::mt_to_terra(
+  land_cover,
+  reproject = TRUE
+)
+```
+
+phenology trends:
+
+```{r}
+## trends in phenology in relation to topography (plotting data side by side)
+p <- ggplot() +
+  tidyterra::geom_spatraster(data = dem) +
+  scale_fill_viridis_c(
+    na.value = NA,
+    name = "altitude (m)"
+  ) +
+  theme_bw()
+
+p2 <- ggplot() +
+  tidyterra::geom_spatraster(data = phenology_raster) +
+  scale_fill_viridis_c(
+    na.value = NA,
+    name = "DOY"
+  ) +
+  theme_bw()
+```
+
+```{r}
+# compositing with patchwork package # plot showing both the DEM and MODIS
+library(patchwork)
+p + p2 + 
+  plot_layout(ncol = 1) + 
+  plot_annotation(
+    tag_levels = "a",
+    tag_prefix = "(",
+    tag_suffix = ")"
+  )
+```
+
+plot relation between topography and start of season (phenology) across the scene
+```{r}
+# non-spatially
+# scatterplot of MODIS in function of altitude
+# white line -> regression fit to all available data
+# convert to data frame and merge
+dem_df <- as.vector(dem)
+phenology_df <- as.vector(phenology_raster)
+sct_df <- data.frame(
+  altitude = dem_df,
+  doy = phenology_df
+)
+
+ggplot(
+  data = sct_df,
+  aes(
+    altitude,
+    doy
+  )
+) +
+  geom_hex() +
+  scale_fill_viridis_c(trans="log10") +
+  geom_smooth(
+    method = "lm",
+    se = FALSE,
+    colour = "white",
+    lty = 2
+  ) +
+  labs(
+    x = "altitude (m)",
+    y = "MODIS vegetation greenup (DOY)"
+  ) +
+  theme_bw()
+```
+
+```{r}
+# the fit linear regression above has the following parameters
+# fit a linear regression to the data of the figure above
+# (for the pre-processing see the collapsed code of the figure)
+fit <- lm(doy ~ altitude, data = sct_df)
+print(summary(fit))
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
