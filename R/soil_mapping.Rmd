@@ -843,7 +843,11 @@ oob_compare
 ## OOB prediction error of the final model
 ##sqrt(mod$finalModel$prediction.error)
 ```
+### OBB
 Based on the independent test set, the Boruta‐selected model generalises better to unseen data: it achieves higher accuracy, precision, and true positive rate, as well as a lower false positive rate compared to the full model. The out-of-bag (OOB) errors provided by the Random Forest training procedure point in the same direction, with the Boruta model showing a slightly lower OOB error than the full model. While a smaller OOB error generally indicates better predictive performance, relying exclusively on OOB error can be problematic because it is calculated during training and may favour more complex models that do not truly generalise well. In this case, however, both the independent test set and the OOB error consistently indicate that the Boruta model performs slightly better, making it the more reliable choice.
+
+!!!!!!! OBB wird immer im summary ausgegeben, muss nicht nochmal extra berechnen und beachte: prediction error sollte tief sein aber R squared (OBB) sollte hoch sein. 
+
 ```{r }
 # NICHT machen !!!!!!!!!!
 # Save relevant data for model testing in the next chapter
