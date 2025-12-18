@@ -51,6 +51,7 @@ packages <- c(
   "phenocamr",
   "GenSA",
   "terra",
+  "leaflet",
   "sf",
   "tidyterra",
   "leaflet",
@@ -74,6 +75,7 @@ library(ggplot2)
 library(phenocamr)
 library(terra)
 library(patchwork)
+library(leaflet)
 
 # project root
 here::i_am("agds_report_salomehayler.Rproj")
@@ -820,7 +822,7 @@ predicted_phenology_optim <- terra::app( # hier auch geändert zu ..._optim, ohn
 plot results: interactive map of the spatially scaled optimized growing degree model using DAYMET daily mean temperature data
 ```{r }
 # set te colour scale manually
-pal <- leaflet::colorNumeric(
+pal <- colorNumeric(
   "magma",
   terra::values(predicted_phenology_optim), # ...optim geändert
   na.color = "transparent"
