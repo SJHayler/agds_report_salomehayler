@@ -41,7 +41,7 @@ Referenzes siehe Notion
 I will use the phenocamr package which interfaces with the phenocam network API
 to download time series of vegetation greenness and derived phenology metrics.
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 # required packages for this report
 packages <- c(
   "dplyr",
