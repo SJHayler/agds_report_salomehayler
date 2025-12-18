@@ -661,9 +661,6 @@ if (rmse_new < rmse_old) {
 ```
 
 Limitation hinschreiben, die model immer noch hat e.g. nur jahr 2010 verwendet nur??
-```{r}
-
-```
 
 # spatial scaling 
 (data liegt im ordner data_raw, muss also nicht hier mit passwort machen, in README reinschreiben)
@@ -823,7 +820,7 @@ predicted_phenology_optim <- terra::app( # hier auch geändert zu ..._optim, ohn
 plot results: interactive map of the spatially scaled optimized growing degree model using DAYMET daily mean temperature data
 ```{r }
 # set te colour scale manually
-pal <- colorNumeric(
+pal <- leaflet::colorNumeric(
   "magma",
   terra::values(predicted_phenology_optim), # ...optim geändert
   na.color = "transparent"
