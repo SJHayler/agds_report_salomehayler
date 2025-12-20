@@ -24,25 +24,31 @@ rm(list = ls()) # clear environment
 # 1. Introduction
 This report exercise is about phenology modelling in the region of Boston, using data from MODIS phenocam und daymet data harvard????. It's important to do phenology modelling for climate changes and provide a model that is as accurate as possible. Dafür kann Growing degree days (GDD) verwendet werden. In this report, three ways of possible improvements are provided and the simplest idea of at least 3 days above the Growing Degree Threshold of 5 degrees a is implemented, da Pflanzen ein stabiles Wärmefenster brauchen über mehrere Tage hinweg (see References and more explanation in chapter 2.3) and following compared to the MODIS MCD12Q2 phenology product. 
 
+GDD definieren growing degree days = cumulative sum of temperatures above a specified threshold, mostly T0=5°C
+
 # 2. Ideas of model improvement
-## 2.1 dynamic threshold für jedes Jahr
+1) dynamic threshold für jedes Jahr
 erst wenn 3 Tage in Folge
-## 2.2 Include information info aus more years, GDD aus mehreren Jahren
+
+2) Include information info aus more years, GDD aus mehreren Jahren
 bisher: than 2010 um 2012 zu predicten, 2010 war aber spezielles jahr, also nicht generell representativ. model optimization auf grundlage von jahr 2010 gebaut, was ein sehr spezielles jahr war (heiß/trocken in USA?)
-## 2.3 Defining growing degree days with at least 3 days >5°C 
+
+3) Defining growing degree days with at least 3 days >5°C 
 nur in monaten, die wachstumsmonate sind? (das hat nicht geklappt)
 dynamic threashold for improvement of the GCC (depending on different climate conditions in different years) 
 
 We could further think of more complex models, such involving also other parameters (radiation etc.) or a global model, also including the in the year opposite growing seasons on the southern hemisphere.
 
-Referenzes siehe Notion
-# 3.  Implemention mind. 3 days with GDD über 5 Grad
+Referenzes siehe Notion -> diese noch im text hier einfügen für die unterschiedlichen ideen. v.a. für mind 3 tage brauche ich noch unterstützende literatur
+pflanze nach 3 wärmetagen robuster schon, bei limitations weiter unten schreiben, dass pflanze dann natürlich immernoch anfällig dafür wäre wenn danach nochmal frost kommt.
+
+# 3. Initital model
 
 I will use the phenocamr package which interfaces with the phenocam network API
 to download time series of vegetation greenness and derived phenology metrics.
 
 ```{r, include=FALSE}
-# required packages for this report
+# required packages
 packages <- c(
   "dplyr",
   "ggplot2",
@@ -62,14 +68,17 @@ packages <- c(
   "knitr",
   "rmarkdown"
 )
-# install packages if not yet installed
+```
+
+```{r, include=FALSE}
+# install missing packages
 for (pkg in packages) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg)
   }
 }
 
-# load often used packages
+# load frequently used packages
 library(dplyr)
 library(ggplot2)
 library(phenocamr)
@@ -77,7 +86,7 @@ library(terra)
 library(patchwork)
 library(leaflet)
 
-# project root
+# set project root
 here::i_am("agds_report_salomehayler.Rproj")
 ```
 
@@ -102,7 +111,7 @@ harvard_phenocam_data <- readr::read_csv(
   )
 ```
 
-```{r }
+```{r, results='hide'}
 # reading in harvard phenology only retaining
 # spring (rising) phenology for the GCC 90th
 # percentile time series (the default)
@@ -350,7 +359,6 @@ prediction <- harvard_temp |>
 
 ```{r }
 print(prediction) # a tibble showing the predicted GDD at which the leaf-out was observed
-
 ```
 
 phenology model calibration
@@ -480,11 +488,10 @@ ggplot(validation) +
 # more advanced models exist: include also radiation, precip, temporal lags (frost during winter)
 
 ```
-# Model optimization - min. 3 threshold-days
+#4.  Model improvement: GDD only if minimum 3 days in a row above 5°C
 ```{r}
 ### --- Improved Growing Degree Day model ---
 ### Only starts counting GDD when there are at least 3 days in a row above 5°C
-
 gdd_model_optim <- function(temp, par, min_run = 3) {
   # temp: numeric vector of daily mean temperatures
   # par:  c(temp_threshold, gdd_crit)
@@ -513,10 +520,9 @@ gdd_model_optim <- function(temp, par, min_run = 3) {
 }
 ```
 
-# für nur implementation threshold >= 3 tage
+für nur implementation threshold >= 3 tage
 ```{r}
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FÜR OHNE FROST implementation, nur optimization tempthreshold >= 3 tage
-### --- RMSE cost function --- 
+### --- RMSE cost function für gddmodel_optim --- 
 ### Measures how well model predictions match observed phenology dates
 
 rmse_gdd_optim <- function(par, data, min_run = 3) {
@@ -604,17 +610,18 @@ ggplot(validation_optimmodel) +
   theme_bw() +
   theme(legend.position = "none")
 ```
-# RMSE beider modelle (zurvor und danach vergleichen!! - Code hier noch kontrollieren, eventuell falsch!!)
 
 weiterhin limitation des modells: nicht genügend parameter angeschaut, gdd ist eine sache (temperatur), aber viele andere Dinge beeinflussen pflanzenwachstum bzw. blattaustrieb. auch wasser beeinflusst blattaustrieb?? und brauche fertile ground conditions (beinhaltet auch wasser, kohlenstoff, nährstoffangebot,light (for photosynthesis, radiation)) -> see paper zitieren auch schreiben, dass model und temperature threshold of 5 degree and 3 tagen stark artenabhängig ist. hängt einerseits von vielen anderen parametern auch noch ab (fertile soil, radiation, light) und aber auch pflanzenabhängig, wann blattaustrieb. früh uns spätblühende. Oder schaue hier mit havard datensatz eh nur eine pflanze an??? elevation abhängig auch, z.b. schnee noch habe aber trotzdem warm (inversionswetterlage), lufttemperatur dann deuthlich anders als unter schneedecke. Elevation -> unterschiedlichste mikroklimate geschaffen
 
+##5.1 Comparison of the RMSE
+RMSE beider modelle (zurvor und danach vergleichen!! - Code hier noch kontrollieren, eventuell falsch!!)
 ```{r}
 ### --- Compare RMSE: old model vs new 3-day-rule model ---
 
 
 ##!!!!!!!!!!!!!! ANPASSEN mit richtigen variablennamen von oben aus model optimization
 
-# 1️⃣ Original (old) model for comparison
+# Original (old) model for comparison
 gdd_model_old <- function(temp, par) {
   temp_threshold <- par[1]
   gdd_crit <- par[2]
@@ -634,7 +641,7 @@ rmse_gdd_old <- function(par, data) {
   sqrt(mean((merged$prediction - merged$doy)^2, na.rm = TRUE))
 }
 
-# 2️⃣ RMSE for old model (optimized)
+# RMSE for old model (optimized)
 optim_par_old <- GenSA::GenSA(
   par = c(0,130),
   fn = rmse_gdd_old,
@@ -646,27 +653,17 @@ optim_par_old <- GenSA::GenSA(
 
 rmse_old <- rmse_gdd_old(optim_par_old, data)
 
-# 3️⃣ RMSE for new model (with 3-day rule)
+# RMSE for new model (with 3-day rule)
 rmse_new <- rmse_gdd_optim(optim_par, data, min_run = 3)
-
-# 4️⃣ Print comparison
-cat("RMSE (old model):", round(rmse_old, 2), "\n")
-cat("RMSE (new 3-day rule model):", round(rmse_new, 2), "\n")
-
-if (rmse_new < rmse_old) {
-  cat("The new model improved the fit (lower RMSE)!\n")
-  
-} else {
-  cat("The new model did not improve RMSE — check biological interpretation.\n")
-}
-
 ```
-
+-> schreiben welcher rmse besser ist. the new model improved the fit (lower RMSE) -> aber nur sehr gering, ist auch visuell fast nicht sichtbar. also irgendwie noch hinschreiben dass man das auch in diesen plots mit den linien nicht sieht.
 Limitation hinschreiben, die model immer noch hat e.g. nur jahr 2010 verwendet nur??
 
-# spatial scaling 
+## 5.2 Spatial scaling of the improved model
 (data liegt im ordner data_raw, muss also nicht hier mit passwort machen, in README reinschreiben)
-```{r, eval=FALSE }
+the code for downloading the data can be viewed in the Rskript but isn't included here. Data was downloaded previously via my NASA account and abgelegt im data_raw ordner. Das skript läuft mit diesen daten, also es ist nicht notwendig, sich bei NASA nochmal anzumelden.
+```{r, eval=FALSE, include=FALSE }
+## in the following code chunks: Anleitung, wie man NASA daten herunterlädt mit eigenem Account
 # use model across larger landscape
 # 1. Passwort einmal speichern (erstes Mal fragt nach Keyring-Passwort)
 key_set(service = "earth_data_user")  
@@ -681,15 +678,15 @@ my_password  # zeigt das gespeicherte Passwort an
 # attempting to set a key
 ```
 
-```{r, eval=FALSE }
+```{r, eval=FALSE, include=FALSE }
 # To see whether the setup has worked, you can try to get the 
 # metadata of the product DAYMET v4:
 rs_layers("DAYMET.004")
 ```
 
-```{r, eval=FALSE }
-rs_set_key(user = "saja_0610", # your username NASA
-           password = "Oleleo2519" # your passwort NASA
+```{r, eval=FALSE, include=FALSE }
+rs_set_key(user = "your username NASA",     
+           password = "your passwort NASA"  
 )
 ```
 
@@ -706,14 +703,14 @@ coords <- matrix(c(
 ), ncol = 2, byrow = TRUE)
 ```
 
-```{r, eval=FALSE }
+```{r, eval=FALSE, include=FALSE }
 # Create a simple feature geometry collection with CRS
 roi <- st_sf(geometry = st_sfc(st_polygon(list(coords)), 
                                crs = 4326)  # WGS 84)
 )
 ```
 
-```{r, eval=FALSE }
+```{r, eval=FALSE, include=FALSE }
 # build the area based request/task
 df <- data.frame(
   task = "DAYMET.004_2012",
@@ -727,7 +724,7 @@ df <- data.frame(
 )
 ```
 
-```{r, eval=FALSE }
+```{r, eval=FALSE, include=FALSE }
 task <- rs_build_task(
   df = df,
   roi = roi,
@@ -736,18 +733,18 @@ task <- rs_build_task(
 ```
 
 request the task to be executed (takes some time -> see https://appeears.earthdatacloud.nasa.gov/explore)
-```{r, eval=FALSE }
+```{r, eval=FALSE, include=FALSE }
 # request the task to be executed
 rs_request(
   request = task,
-  user = "saja_0610",
+  user = "your username NASA",
   transfer = TRUE,
   path = here::here("data_raw"),
   verbose = TRUE
 )
 ```
 
-ab hier wieder weitermachen, weil hier habe daten schon abgespeichert, nachdem bei NASA herunterageladen habe
+Load the previously downloaded NASA data from the folder data_raw
 ```{r }
 # Load the downloaded daily data:
 r1 <- terra::rast(
@@ -766,22 +763,8 @@ The variables can be accessed with:
 r1["tmax"]
 r1["tmin"]
 
-nicht machen!!
-```{r, eval=FALSE }
-## in case there are issues with creating a NASA user account or the download
-local_file <- tempfile(fileext = ".nc")
-download.file("https://github.com/fabern/handfull_of_pixels/raw/refs/heads/main/data/DAYMET.004_2012/DAYMET.004_1km_aid0001.nc",
-              destfile = local_file)
-r1 <- terra::rast(local_file)
-```
-
-```{r, eval=FALSE }
-# Assign the correct CRS, e.g. WGS84 (EPSG:4326)
-terra::crs(r1) <- "epsg:4326"
-```
-bis hier
-
-# model optimization als karte machen (noch nicht gemacht bisher)
+--> **jetzt im folgenden ist der Code für Karte für das optimised model??**
+model optimization als karte machen (noch nicht gemacht bisher) -> oder doch ist dieses interaktive??
 jetzt wieder weiter:
 ```{r }
 # Calculate the daily mean values based on 'tmin' and 'tmax'
@@ -808,8 +791,8 @@ ma_nh_temp <- terra::subset(
   1:180
 )
 ```
-# beachte!! 
-bisher gdd_model der name vom optimierten model und vom ursprünglichen, eventuell namen ändern
+beachte!! 
+bisher gdd_model der name vom optimierten model und vom ursprünglichen, eventuell namen ändern?? ne habe schon geändert, aber besser nochmal kontrollieren!!
 ```{r }
 # apply model to this raster (cube)
 predicted_phenology_optim <- terra::app( # hier auch geändert zu ..._optim, ohne war original
@@ -859,56 +842,8 @@ limitations von meiner implementierung nennen, eventuell model nicht verbessert
 !!!kapitel 4 hier verwenden, nicht kapitel 5
 !!!achten dass richtig osten / westen angebe und in USA lande damit
 download MODIS land surface phenology product (MCD12Q2) 
-## original MODIS wie war
-```{r}
-# download and save phenology data
-phenology <- MODISTools::mt_subset(
-  product = "MCD12Q2",
-  lat = 46.6756, 
-  lon = 7.85480,
-  band = "Greenup.Num_Modes_01",
-  start = "2012-01-01",
-  end = "2012-12-31",
-  km_lr = 100,
-  km_ab = 100,
-  site_name = "swiss",
-  internal = TRUE,
-  progress = FALSE
-)
-```
-The documentation of the product also shows that phenology metrics are dates as days counted from January 1st 1970. In order to ease interpretation, we will convert these integer values, counted from 1970, to day-of-year values (using as.Date() and format()). We only consider phenological events in the first 200 days of the year, as we focus on spring. Later dates are most likely spuriou
-```{r}
-#### preprocessing MODIS ####
-# screening of data # convert integer to day-of-year values
-phenology <- phenology |>
-  mutate(
-    value = ifelse(value > 32656, NA, value),
-    value = as.numeric(format(as.Date("1970-01-01") + value, "%j")),
-    value = ifelse (value < 200, value, NA)
-  )
-```
 
-```{r}
-# convert tidy data into geospatial (terra SpatRast format)
-phenology_raster <- MODISTools::mt_to_terra(
-  phenology,
-  reproject = TRUE
-)
-```
-
-plot MODIS data:
-```{r, fig.cap = "Abbildung XX: "}
-ggplot() +
-  tidyterra::geom_spatraster(data = phenology_raster) +
-  scale_fill_viridis_c(
-    na.value = NA,
-    name = "DOY"
-    ) +
-  theme_bw()
-``` 
-## MODIS für Boston area
-das davor löschen?
-
+##4.1 MODIS MCD12Q2 for Boston area
 ``` {r}
 # download and save phenology data
 phenology_boston <- MODISTools::mt_subset(
@@ -955,8 +890,11 @@ ggplot() +
     ) +
   theme_bw()
 ``` 
-## 4.1 Comparing the data spatially
+
+## 4.2 Comparing the data spatially
 kleinere ausdehnung ??
+figure description überall machen
+dann hier figure XX  interaktive karte (das ist mein optimized model) und figure XX boston modis vergleichen
 ## 4.2 Reasons for similarities and differences in Patterns
 etwas anderer Raster, 2010 genommen um model zu fitten, nicht 2012 wie satellitendatensatz
 threshold im modisdata satz, dass DOY later im jahr, weil erst eine bestimmte fläche des pixels grün sehen muss und dann wird pixel als DOY gesehen.
@@ -965,3 +903,15 @@ threshold im modisdata satz, dass DOY later im jahr, weil erst eine bestimmte fl
 references
 # 5. References & Declaration of Authorship
 I hereby declare, that I wrote this report myself. It is based on foundational codes and general information from the book "A Handful of Pixels" by Koen Hufkens (2025), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. ChatGPT was used to solve a technical issue in my R setup related to the download of the NASA data, as the instructions from the appears package didn't work. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/r-code.html) was used as a helpful guide on markdown syntax.
+
+ChatGPT genutzt um NASA daten herunterzuladen, war großes problem zunächst, aber hat dann geklappt, weil noch ein paar codes gefehlt hatten zur ursprünglichen anleitung im AGDS book die bei mir so allein nicht funktioniert hatte.
+
+**Data**
+harvard phenocam data
+NASA data = DAYMET data
+climatdata??
+**Other Literature**
+
+--> was dazuschreiben ob computational efficiency gemacht habe oder nicht???
+--> brauche ich das wo ich unterschiedliche bilder anschaue von tagen im januar??oder nicht?? -> bzw. wenn drinhabe muss interpretieren und ist das limitation, weil nur 2010 daten?? von winter?? in AGDS book ist 2012 hä? nein ich zeige auch 2012, aber ich soll 2010 anschauen und diese daten sind nicht im modell drin, also habe nur 2012 daten drin in meinem model. heißt soviel wie modis zeigt was anderes als mein model??
+was war 2010? kalter winter, heißer sommer, blocking hä?
