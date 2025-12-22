@@ -22,33 +22,25 @@ rm(list = ls()) # clear environment
 ```
 
 # 1. Introduction
-This report exercise is about phenology modelling in the region of Boston (located in the north east of the US), using data from MODIS, the PhenoCam network, and DAYMET climate data from the harvard forest (see chapter 6). Phenology modelling is important for understanding the impacts of climate change (temperature rise and impacts on for example earlier leaf-out-day of plants) and therefore providing models that are as accurate as possible. One approach to achieve this is the use of Growing Degree Days (GDD). GDD is defined as the cumulative sum of temperatures above a specified threshold, most commonly T₀ = 5°C. In this report, three possible ways to improve the inital phenology model (given in the book "A Handful of pixels") are discussed. The simplest approach is implemented as part of this exercise to accumulate GDD only after at least three consecutive days above the growing degree threshold of 5°C, because plants require a stable period of warmth over several days to initiate leaf-out (see References and further explanation in Chapter 2.3). The model results are then compared to the MODIS MCD12Q2 phenology product.
+
+This report is about with phenology modeling in the Boston region (in the northeastern United States) using data from MODIS, the PhenoCam network, and DAYMET climate data from Harvard Forest (see Chapter 6). Phenology modeling is important for understanding the effects of climate change (temperature increase and effects on, for example, earlier leaf emergence in plants) and therefore for providing models that are as accurate as possible. One approach to achieving this is to use growing degree days (GDD). GDD is defined as the cumulative sum of temperatures above a certain threshold, usually T₀ = 5 °C. This report discusses three possible ways to improve the original phenology model (from the book “A Handful of Pixels” by Koen Hufkens (2025) https://geco-bern.github.io/handfull_of_pixels/). The simplest approach is implemented as part of this exercise to accumulate GDD only after at least three consecutive days above the growth degree threshold of 5 °C, as plants need a stable period of warmth over several days to initiate leaf growth (see references and further explanations in Chapter 2.3). The model results are then compared with the MODIS MCD12Q2 phenology product.
 
 # 2. Ideas of model improvement
-1) nicht mittlere temperaturwerte tageswerte nehmen
-nachtfrost auch relevant -> wenn tagsüber sehr warm wegen sonnenschein stark lokal schon im april möglich mit viel einstrahlung aber nachts nochmal frost, dann ist zwar mean day temp über 5 grad, aber kann nachts trotzdem minusgrade haben und dann war kein GDD day, weil frost schadet pflanze / wachstumsgeschehen
 
-hätte anderes jahr nehmen können: DAYMET 2010, das zeigt nämlich auch MODIS????? zeigt MODIS 2010 oder 2012? weil bei inital model am Anfang nehme ich ja auch die 2010 also als einleitenden grafiken mache --> NEIIIIIIIN: habe 2010 nicht drin in MODIs, modis auch 2012 -> deshalb weder modis noch optimized model capture 2010 hot event -> beide abweichungen von havard forest observations????
-model könnte man verbessern indem überall daten von 2010 nimmt auch für model optimisation und bei MODIS
+**Accumulate GDD only after consecutive warm days (>5 °C)**
 
-2) phenology nicht nur von temperature beeinflusst sondern auch von anderen parametern, genügend wasser?, soil conditions, nährstoffe, andere landschaftsfaktoren: höhenlage generell, küstenlage, auch dann winde? anderes mikroklima generell
-We could further think of more complex models, such involving also other parameters (radiation etc.) 
+Classical GDD approaches accumulate heat on each day that the threshold is exceeded, ignoring previous conditions. Many plants need several consecutive warm days to end their dormancy. In this model, the threshold is set to at least three consecutive days with temperatures above 5 °C. This reduces the risk of counting individual warm days followed by frost. No specific value for the number of consecutive warm days could be found in the literature, and this probably varies between species. For this reason, I only use a number of at least 3 days to define a rule for consecutive warm days.
 
-rauslassen: Include information info aus more years, GDD aus mehreren Jahren
-bisher: than 2010 um 2012 zu predicten, 2010 war aber spezielles jahr, also nicht generell representativ. model optimization auf grundlage von jahr 2010 gebaut, was ein sehr spezielles jahr war (heiß/trocken in USA?)
+**Dynamic thresholds and adaptive GDD approaches for different locations**
 
-3) Defining growing degree days with at least 3 days >5°C 
-nur in monaten, die wachstumsmonate sind? (das hat nicht geklappt)
-dynamic threashold for improvement of the GCC (depending on different climate conditions in different years) 
-schreiben dass >=3 days above 5 degree dafür
+Fixed base temperatures (e.g., 5 °C) and fixed GDD thresholds may not work equally well in different climate zones, for different species, or in different hemispheres. In a global model, thresholds and heat accumulation rules should take into account differences in growing seasons between the northern and southern hemispheres, as well as local responses of species to seasonal effects. Adjusting thresholds or accumulation rules based on local seasonal patterns could improve the model's universality across regions. For a truly global model, many other factors (that influence plant phenology) would also have to be taken into account. In addition to temperature, I am thinking of influences such as water availability, soil conditions, altitude, distance from the coast, wind conditions, and local microclimate (e.g., solar radiation or shade).
 
-??I could further think of even more complex models, that work globally and also take into account different seasons on southern/norhtern hemisphere global model, also including the in the year opposite growing seasons on the southern hemisphere.
+**Use longer data series and consistent data sets for calibration**
 
-Referenzes siehe Notion -> diese noch im text hier einfügen für die unterschiedlichen ideen. v.a. für mind 3 tage brauche ich noch unterstützende literatur
-pflanze nach 3 wärmetagen robuster schon, bei limitations weiter unten schreiben, dass pflanze dann natürlich immernoch anfällig dafür wäre wenn danach nochmal frost kommt.
+Calibrating the model using a single year (e.g., 2010) can lead to biased results, as extreme years are not representative of typical conditions. Using longer time series would allow for more general statements about the timing of leaf emergence, capture variability between years, and account for changes in temperature patterns over multiple years, including trends caused by climate change. Consistent use of the same datasets for calibration and evaluation, such as DAYMET and MODIS, would also improve spatial predictions and reduce discrepancies between years.
 
 # 3. Initial model
-In this chapter, the phenology modelling workflow presented in chapter 6 of "A Handful of Pixels" is reproduced without modifications. The code is directly adopted from the book in order to understand how the phenology model is structured and to establish a baseline growing degree day (GDD) model that serves as a reference for the subsequent model improvement. If there's no need to look at the inital model part, jump directly to chapter 4 (model improvement).
+This chapter reproduces the phenology modeling workflow presented in Chapter 6 of “A Handful of Pixels” without modification. The code has been taken directly from the book to understand how the phenology model is constructed and to create a basic growing degree day (GDD) model that serves as a reference for subsequent model improvement. If you don't want to look at the first part of the model, skip ahead to Chapter 4 (Model improvement).
 
 I will use the phenocamr package which interfaces with the phenocam network API
 to download time series of vegetation greenness and derived phenology metrics.
@@ -316,7 +308,7 @@ p + p2 +
   )
 ```
 
-The GDD increases on days when temperatures exceed the threshold as the growing season progresses, and in 2010 spring leaf-out was observed on day-of-year (DOY) 114, corresponding to a GDD of 130.44 °C. While this value provides a simple estimate for leaf-out in a single year, it does not necessarily yield accurate predictions across multiple years or locations, making model generalization necessary.
+The GDD increases on days when temperatures exceed the threshold during the growing season, and in 2010, leaf emergence in spring was observed on day 114 of the year (DOY), corresponding to a GDD of 130.44 °C. While this value provides a simple estimate for leaf emergence in a single year, it does not necessarily yield accurate predictions across multiple years or locations, necessitating model generalization.
 
 Growing degree day model optimization to generalize the model: 
 ```{r }
@@ -363,9 +355,10 @@ prediction <- harvard_temp |>
 ```{r }
 print(prediction) # a tibble showing the predicted GDD at which the leaf-out was observed
 ```
-Here, the critical GDD value was taken directly from the observed leaf-out date, resulting in a model that reproduces the observed leaf-out timing exactly.
 
-While the predicted leaf-out date matches the observation, it remains unclear whether this parameter choice is valid beyond a single year or location. To address this question, the phenology model is calibrated by making predictions across a larger set of years and comparing them to observations.
+Here, the critical GDD value was taken directly from the observed leaf-out-date, resulting in a model that accurately reproduces the observed leaf-out time.
+
+Although the predicted leaf-out-date matches the observation, it remains unclear whether this parameter selection is valid beyond a single year or a single location. To clarify this question, the phenology model is calibrated by making predictions over a longer period of time and comparing them with observations.
 ```{r }
 # goal: minimize the error (cost function) between model results (for 
 # given set of parameters (temp & critical GDD) and our observed data 
@@ -404,9 +397,6 @@ rmse_gdd <- function(par, data) {
   return(rmse)
 }
 ```
-
-??????????????????
-zu chunk oberhalb:!! Both the cost function as the growing degree day function are not optimized for computational efficiency, when implementing your own code, take care to optimize both functions for efficiency by vectorization and other techniques.
 
 ```{r }
 # often, starting model parameters and limits to the parameter space are required (temp. threshold and physiological limits of plant activity)
@@ -493,14 +483,9 @@ ggplot(validation) +
 
 ```
 
-??? schreibe ja schon oben: more advanced models exist: include also radiation, precip, temporal lags (frost during winter)
-schreiben wie man diesen scatterplot liest, kann man da DOY ablesen?? was zeigt dieser plot??
-
 # 4.  Model improvement
-In this chapter, the initial GDD model is improved by implementing a rule that accumulates growing degree days only during periods of at least three consecutive days with temperatures above 5°C.
+This chapter improves the original GDD model by implementing a rule that only accumulates growing degree days during periods of at least three consecutive days with temperatures above 5 °C.
 
-???? und auch noch in introduction bzw hier irgendwo schreiben dass anders gemacht habe für computational efficiency.
-habe vektorisierte GDD berechnung aber gemacht
 ```{r}
 # improved GDD model function -> only starts counting GDD when there are at least 3 days in a row above mean temperature of 5°C
 gdd_model_optim <- function(temp, par, min_run = 3) {
@@ -622,13 +607,10 @@ ggplot(validation_optimmodel) +
   theme(legend.position = "none")
 ```
 
-man kann visually zu figure von inital model (also scatterplot dort) nur wenige unterschiede / nichts erkennen?? sieht genau gleich aus, weil nur geringfügig besserung. 
-muss bedenken, zwar kleine verbesserung hier aber model hat immernoch 
-
-weiterhin limitation des modells: nicht genügend parameter angeschaut, gdd ist eine sache (temperatur), aber viele andere Dinge beeinflussen pflanzenwachstum bzw. blattaustrieb. auch wasser beeinflusst blattaustrieb?? und brauche fertile ground conditions (beinhaltet auch wasser, kohlenstoff, nährstoffangebot,light (for photosynthesis, radiation)) -> see paper zitieren auch schreiben, dass model und temperature threshold of 5 degree and 3 tagen stark artenabhängig ist. hängt einerseits von vielen anderen parametern auch noch ab (fertile soil, radiation, light) und aber auch pflanzenabhängig, wann blattaustrieb. früh uns spätblühende. Oder schaue hier mit havard datensatz eh nur eine pflanze an??? elevation abhängig auch, z.b. schnee noch habe aber trotzdem warm (inversionswetterlage), lufttemperatur dann deuthlich anders als unter schneedecke. Elevation -> unterschiedlichste mikroklimate geschaffen
+This model only uses average daily temperatures, so it does not record absolute hourly temperatures. As a result, night frosts can still occur even when the average daily temperature is above 5 °C, which could have an impact on plant phenology in reality. In addition, three consecutive warm days may not be sufficient for all plants, as frost after these days can still damage or kill buds.
 
 ## 4.1 Comparison of the RMSE (initial vs. optimised model)
-To quantify how well the models reproduce observed leaf-out dates, the root mean squared error (RMSE) is calculated for both the initial GDD model and the optimized GDD model, which provids a measure of the prediction error between observed and modeled DOY values.
+To quantify how well the models reproduce the observed leaf-out dates, the root mean squared error (RMSE) is calculated for both the original GDD model and the optimized GDD model, providing a measure of the prediction error between the observed and modeled DOY values.
 
 ```{r}
 # RMSE comparison using the rmse functions from both models
@@ -644,24 +626,10 @@ rmse_comparison <- tibble(
 print(rmse_comparison)
 ```
 
-The initial GDD model has an RMSE of 4.70 days, while the optimized GDD model achieves a slightly lower RMSE of 4.32 days. This indicates a minor improvement in fit, though the difference is very small and barely noticeable in the scatterplots and regression lines. ???????????????
-
--> schreiben welcher rmse besser ist. the new model improved the fit (lower RMSE) -> aber nur sehr gering, ist auch visuell fast nicht sichtbar. also irgendwie noch hinschreiben dass man das auch in diesen plots mit den linien nicht sieht.
-Limitation hinschreiben, die model immer noch hat e.g. nur jahr 2010 verwendet nur??
-
-schreiben dass hier eben nur minimale RMSE verbesserung weil ja nur etwas sehr einfaches geändert habe. Also gibt viele anderen verbesserungen, die viel mehr bringen, siehe kapitel 2 Ausführungen. diese modelle aber auch viel komplexer zu schreiben.
-
-im buch haben die noch print prediction gemacht also dann heruasgefinden den predicted GDD -> at which leaf out was observed. -> habe ich das auch gemacht für mein Model?? 
-
-!!!!!! ein model ist früher / später als das andere? weil scatterplots die linie unten und einmal oberhalb liegt?
+The original GDD model has an RMSE of 4.70 days, while the optimized GDD model achieves a slightly lower RMSE of 4.32 days. This indicates a slight improvement in the fit, although the difference is very small and barely noticeable in the scatter plots. Both the original and optimized GDD models show a clear positive relationship between the observed and predicted leaf-out-dates. The points are roughly aligned along the 1:1 line, suggesting that the models generally capture the timing of leaf-out. Comparing the two scatterplots (Figure 3 and Figure 4), the optimized model with the 3-day threshold appears to predict slightly earlier leaf-out-date for some of the observed data in the middle range (approximately DOY 125–130), as the fitted line lies just above the points for earlier observations. For the later leaf-out-dates (DOY > 130), the predictions are very similar to those of the original model. The slight improvement is to be expected, as only a simple change (3 consecutive warm days) was made.
 
 ## 4.2 Spatial scaling of the improved model
-(data liegt im ordner data_raw, muss also nicht hier mit passwort machen, in README reinschreiben)
-the code for downloading the data can be viewed in the Rskript but isn't included here. Data was downloaded previously via my NASA account and abgelegt im data_raw ordner. Das skript läuft mit diesen daten, also es ist nicht notwendig, sich bei NASA nochmal anzumelden.
-**Einleitungsatz im Buch war -> sowas auch schreiben!!**: With a basic model parameterized you can explore if and how the relationship between observed and predicted values scale across a larger landscape. As example we will use a region around Boston in the eastern United States, defined by the coordinates -72 to -70 East, and 42 to 44 North. I will use DAYMET raster data to scale the results spatially (relying on the same driver data as used during parameterization). First I download both minimum and maximum temperature data and average them to a mean daily value (as previously used), using the appeears R package (Hufkens 2023).
-To do so, first create a AppEEARS Earth Data Cloud user (here) and setup the appeears package with that user (see more detailed information in the appeears package documentation.
-may take some time deshalb for compuational efficiency geändert
-runtergeladen mit appears anleitung https://bluegreen-labs.github.io/appeears/articles/appeears_vignette.html 
+For the spatial scaling of the optimized GDD model, the calibrated parameters were applied to a larger area around Boston in the eastern United States (longitude: -72 to -70, latitude: 42 to 44). The model is based on DAYMET grid data, specifically the daily minimum and maximum temperatures, which are averaged to calculate the daily average temperatures in accordance with the calibration data. The temperature data was previously downloaded using the AppEEARS R package and is stored locally in the “data_raw” folder. Since the data is already available, no additional NASA account setup or download is required to perform the spatial analysis. The R Markdown script (not shown in the rendered document) contains additional code blocks that illustrate how the original data was accessed (see https://bluegreen-labs.github.io/appeears/articles/appeears_vignette.html for more information).
 
 ```{r, eval=FALSE, include=FALSE }
 ## in the following code chunks: Instructions for downloading DAYMET raster data using your own account -> this allows the model to be applied across a larger landscape
@@ -843,10 +811,8 @@ max_DOY_optim
 ```
 
 # 5. Comparison of the model output with the MODIS MCD12Q2 phenology product
-Einleitungsatz schreiben
-!!!achten dass richtig osten / westen angebe und in USA lande damit
-download MODIS land surface phenology product (MCD12Q2) -> habe gemacht
-schreiben das boston von 42 bis 44 und -70 bis -71 und ich dann hier mittelwert angegeben habe.
+
+To evaluate the performance of the optimized GDD model on a larger spatial scale, its predictions are compared with the MODIS MCD12Q2 land surface phenology product, which provides satellite-based data on vegetation start dates for the greater Boston area (latitude 42–44° N, longitude -72 to -70° E -> I used the mean value in each case).
 
 ## 5.1 MODIS MCD12Q2 for Boston area
 ``` {r}
@@ -866,7 +832,7 @@ phenology_boston <- MODISTools::mt_subset(
 )
 ```
 
-first, preprocess MODIS neccessary: The documentation of the product also shows that phenology metrics are dates as days counted from January 1st 1970. In order to ease interpretation, we will convert these integer values, counted from 1970, to day-of-year values (using as.Date() and format()). We only consider phenological events in the first 200 days of the year, as we focus on spring. Later dates are most likely spuriou
+First, MODIS requires preprocessing: The product documentation also shows that phenological metrics are counted as days starting from January 1, 1970. To simplify interpretation, we will convert these integer values, counted from 1970, into values for the day of the year (using as.Date() and format()). We only consider phenological events in the first 200 days of the year, as we are focusing on spring. Later dates are most likely incorret.
 
 ```{r}
 # screening of data 
@@ -909,104 +875,50 @@ min_DOY_MODIS
 max_DOY_MODIS
 ```
 
-The MODIS MCD12Q2 product provides phenological transition dates derived from time series of vegetation indices, primarily the Enhanced Vegetation Index (EVI). Green-up dates are identified based on consistent and sustained increases in canopy greenness, rather than direct physiological processes. As a result, the product reflects canopy-level responses integrated over relatively large spatial footprints (500 m pixels).
-
-For the Boston region, MODIS green-up dates generally occur within the first 200 days of the year, consistent with temperate deciduous forest phenology. Earlier green-up is observed in coastal and southern areas, while later green-up occurs inland and at higher elevations. These spatial patterns reflect well-established climatic gradients in the northeastern United States, particularly temperature moderation near the coast and delayed warming in inland and elevated areas (White et al., 2009).
+The MODIS MCD12Q2 product provides phenological transition data derived from time series of vegetation indices. The greening data is determined based on the increase in greenness of the canopy rather than on direct physiological processes. Therefore, the product reflects responses at the tree canopy level that are integrated over relatively large spatial areas (500 m resolution) (for more information, see: https://cran.r-project.org/web/packages/MODISTools/index.html).
 
 ## 5.2 Comparing the data spatially
-statisticen mean, min, max beider modelle beschreiben hier und auch vergleichen mit DOY der ganz am anfang bei initial model für jahr 2010 war (aus havard data). war das früher?
-und RMSE nochmal auch vergleichen? ne MODIS hat kein RMSE nur optimised model und initial, das vorher schon bei scatterplot erklärung diskutieren.
+The spatial patterns of spring greening derived from the optimized GDD model and the MODIS MCD12Q2 product are highly consistent on a broad scale. Both datasets show earlier greening in the south and along the coasts of the Boston region and increasingly later greening toward the interior and higher elevations. This agreement suggests that both approaches capture the dominant influence of temperature on spring phenology.
 
-kleinere ausdehnung ??
-figure description überall machen
-dann hier figure XX  interaktive karte (das ist mein optimized model) und figure XX boston modis vergleichen
-At a broad spatial scale, the optimized GDD model and the MODIS MCD12Q2 product show remarkably consistent large-scale patterns. Both datasets indicate earlier green-up in coastal and southern parts of the study area and progressively later green-up toward the north and at higher elevations. This agreement suggests that the phenology model successfully captures the dominant first-order control on spring phenology: spatial variation in temperature (White et al., 2009; Stocker et al., 2023).
+Despite this general agreement, the two datasets differ in their statistical range. For the Boston region, the MODIS product shows a mean greening date of DOY 101 with values ranging from DOY 67 to DOY 141. In contrast, the optimized GDD model predicts a later mean greening date of DOY 111 with a narrower range from DOY 101 to DOY 147. This suggests that, compared to MODIS, the model generally predicts later and spatially more homogeneous greening dates. Neither dataset reproduces the DOY of approximately 114 obtained from the original point-based model, which reflects site-level conditions in 2010 rather than regional-level phenology in 2012.
 
-Despite this general agreement, clear differences are evident at finer spatial scales. The MODIS product exhibits substantially higher spatial heterogeneity, with patchy and locally abrupt changes in green-up timing. These patterns likely arise from land-cover heterogeneity within MODIS pixels, including mixtures of deciduous and evergreen forests, agricultural land, and urban vegetation. In contrast, the GDD model produces smoother spatial patterns, reflecting both the spatial structure of the DAYMET temperature data and the assumption of a uniform physiological response to temperature across space.
+The higher spatial variability of the MODIS product reflects its sensitivity to land cover heterogeneity within 500-m pixels, including mixtures of forest, urban areas, and agricultural land. The optimized GDD model produces smoother spatial patterns because it is based purely on gridded temperature data and assumes a uniform temperature response across the region.
 
-In many areas, the model predicts slightly later green-up dates than MODIS. This systematic offset is consistent with previous studies comparing temperature-based phenology models with satellite-derived phenology metrics, which often find that satellite observations detect early canopy greening before temperature-based thresholds are reached (White et al., 2009; Hufkens et al., 2012).
+Since MODIS provides a phenological metric derived from satellite data and not direct observations of physiological leaf emergence, an RMSE comparison between MODIS and the model is not meaningful. Model performance was therefore previously evaluated solely on the basis of PhenoCam observations.
 
 ## 5.3 Reasons for similarities and differences in patterns
-etwas anderer Raster, 2010 genommen um model zu fitten, nicht 2012 wie satellitendatensatz
-threshold im modisdata satz, dass DOY later im jahr, weil erst eine bestimmte fläche des pixels grün sehen muss und dann wird pixel als DOY gesehen.
-2010 war sehr warm -> früher im jahr DOY?
+Several factors explain the remaining differences between the optimized GDD model and the MODIS MCD12Q2 product. First, the two approaches describe different aspects of phenology. The GDD model estimates the timing of physiological leaf-out based on accumulated temperature, while MODIS captures canopy greening based on changes in surface reflectance. As a result, MODIS can detect greening earlier than the temperature-based thresholds are reached.
 
-Several factors explain why the optimized GDD model and the MODIS MCD12Q2 product do not produce identical phenology patterns.
+Second, the datasets differ in their spatial resolution. MODIS pixels integrate vegetation signals over large areas, resulting in higher spatial variability, while the GDD model reflects the smoother spatial structure of DAYMET temperature data.
 
-First, the two approaches represent fundamentally different definitions of phenology. The GDD model is process-based and assumes that leaf-out occurs once a critical heat sum is exceeded, representing physiological readiness for leaf development (Chuine, 2010). MODIS phenology, by contrast, is inferred indirectly from changes in surface reflectance and vegetation indices, which capture canopy-level greenness rather than a specific physiological transition (Zhang et al., 2018).
-
-Second, spatial resolution and land-cover mixing strongly influence the MODIS signal. Individual MODIS pixels frequently contain multiple vegetation types with distinct phenological strategies, leading to increased spatial variability. The GDD model does not explicitly account for species composition, land-cover type, urban heat island effects, or microclimatic variability, all of which can contribute to discrepancies between modeled and satellite-derived phenology (White et al., 2009).
-
-Third, temporal inconsistencies between datasets affect the comparison. The phenology model was calibrated using PhenoCam observations influenced by climatic conditions around 2010, whereas the MODIS dataset used here represents phenology in 2012. Given the strong interannual variability in spring climate, differences in phenological timing between years are expected and can obscure direct model–data agreement (Hufkens et al., 2012).
-
-Finally, the MODIS MCD12Q2 product applies internal thresholds and quality-control criteria, requiring a sufficient fraction of a pixel to exhibit sustained greening before a phenological transition is recorded. This can lead to systematically later green-up dates compared to temperature-driven models, particularly in heterogeneous or sparsely vegetated landscapes (Zhang et al., 2018; NASA LP DAAC, 2021).
+Finally, the comparison is affected by temporal inconsistencies. The optimized GDD model parameters were calibrated using PhenoCam observations from 2010, while both the spatially scaled model outputs and the MODIS product reflect conditions in 2012. The optimized model therefore applies parameters influenced by 2010 conditions to a different climate year, contributing to systematic differences in the predicted timing of greening.
 
 ## 5.4 2010 as a special year for the northeastern US
-It is important to note that the DOY values shown above represent the spatially scaled phenology for 2012, based on DAYMET temperature data. Although the optimized GDD model parameters were calibrated using PhenoCam observations from 2010, the model’s spatial predictions are applied to 2012 temperatures. Therefore, neither the optimized model map nor the MODIS MCD12Q2 dataset reflect the exceptionally early green-up of 2010.
+The year 2010 was a climatologically exceptional period for the northern hemisphere, marked by record cold temperatures in the winter of 2009/2010. These extreme conditions were associated with strongly negative phases of the North Atlantic Oscillation, which led to prolonged cold air outbreaks over North America (Wang et al., 2010).
 
-references
-The year 2010 represents a climatologically and phenologically exceptional year for the northeastern United States, and this context is crucial for interpreting the results of this study. Multiple independent studies demonstrate that spring 2010 was characterized by unusually warm temperatures, leading to exceptionally early vegetation green-up across the region.
+The original GDD model and the optimized model parameters are based on PhenoCam observations from 2010, which means that the estimated temperature thresholds implicitly reflect the phenological responses after this unusually cold winter. Such conditions can delay the accumulation of growing degree days and postpone the leaf-out-date to later in the year, contributing to the later DOY values of the original model.
 
-Optimized GDD model:
-Dein optimiertes Modell wurde auf Basis der PhenoCam-Daten von 2010 kalibriert, also die Parameter (GDD-Kritischwert etc.) stammen aus 2010.
-Es wurde für die räumliche Skalierung (Boston AREA) dann auf 2012 DAYMET-Daten angewendet, um die Karte zu erzeugen.
-Deshalb zeigt die räumlich skalierte Karte nicht die 2010 „heißen“ Bedingungen, sondern die 2012-Situation, auf die die 2010er-Parameter angewendet wurden.
+However, the spatial predictions of the optimized GDD model were created using DAYMET temperature data from 2012, and the MODIS MCD12Q2 product used for comparison also represents the phenology in 2012. Consequently, neither the optimized model nor the MODIS dataset reflect the exceptional winter conditions of 2009/2010.
 
-MODIS MCD12Q2:
-Der MODIS-Datensatz, den du zur räumlichen Vergleichsdarstellung nutzt, stammt ebenfalls aus 2012.
-Deshalb reflektiert MODIS nicht die außergewöhnlichen Frühjahrsbedingungen von 2010, sondern die typischen Muster von 2012.
-
-schreiben, dass beide Datensätze die Extreme von 2010 nicht zeigen, weil für den spatial scaling-Vergleich nur 2012-Daten verwendet wurden.
-
--> weder mein optimized model noch das MODIS zeigt 2010 hot, weil beide auf 2012 datensätzen beruhen
--> oder mein optimized noch auf 2010 weil von initial abgeleitet
--> beide gleiches leaf out oder nicht?
--> mein optimized späteres leaf out als initial?
-
-Using satellite-based phenology metrics and ground observations, Friedl et al. (2014) showed that spring temperatures in the northeastern temperate forests during 2010 were approximately 3 °C warmer than the long-term mean (1971–2000). As a consequence, leaf emergence occurred up to two weeks earlier than average, making 2010 one of the earliest green-up years in the MODIS record. These findings were corroborated by in situ observations and ecosystem-scale measurements.
-
-Long-term phenological records from eastern Massachusetts further confirm the exceptional nature of 2010. Based on observations from Concord, Massachusetts—located close to the Boston study region—Ellwood et al. (2013) reported that mean spring temperatures in 2010 were the warmest ever recorded locally. This resulted in record-breaking early flowering dates across multiple plant species, clearly identifying 2010 as an outlier in the historical phenological record.
-
-At the continental scale, satellite-based analyses show that years such as 2010 and 2012 stand out as extreme early green-up events. Zhang et al. (2020) demonstrated that interannual variability in spring phenology across the contiguous United States has increased in recent decades, with years characterized by unusually warm springs exhibiting markedly earlier green-up than average. In this broader context, 2010 is consistently identified as an extreme rather than representative year.
-
-The exceptional climatic conditions of 2010 have important implications for phenology modeling. Models calibrated using data from such anomalous years may exhibit reduced transferability to more typical climatic conditions, as parameter estimates can become biased toward stronger temperature sensitivity. In this study, the optimized GDD model was influenced by observations from 2010, whereas the MODIS MCD12Q2 product used for spatial comparison represents phenology in 2012. Consequently, part of the disagreement between model output and MODIS-derived green-up patterns likely reflects genuine interannual climate variability, rather than structural deficiencies of the model itself.
-
-Overall, the literature clearly supports the interpretation of 2010 as a phenologically extreme year in the northeastern United States. This context is essential for evaluating both the strengths and limitations of temperature-based phenology models and underscores the importance of multi-year calibration approaches that explicitly account for interannual climate variability (Chuine, 2010; Friedl et al., 2014).
+This temporal discrepancy explains why the spatially leaf-out respectively greening data from both datasets (my optimised model, respectively the MODIS data) deviate from the DOYs derived from the original model based on 2010. The comparison presented here therefore reflects the typical phenological patterns for 2012 rather than the extreme conditions observed in the winter of 2009/2010.
 
 # 6. References & Declaration of Authorship
-I hereby declare, that I wrote this report myself. It is based on foundational codes and general information from the book "A Handful of Pixels" by Koen Hufkens (2025), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. ChatGPT was used to solve a technical issue in my R setup related to the download of the NASA data, as the instructions from the appears package didn't work. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/r-code.html) was used as a helpful guide on markdown syntax.
+I hereby declare that I (Salome Hayler) have written this report myself. It is based on fundamental codes and general information from the book “A Handful of Pixels” by Koen Hufkens (2025), general information from the book “Applied Geodata Science (v1.0)” by Benjamin Stocker et. al (2023), and information from lectures (by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All other sources of information are listed in this section and have been cited in the text. 
 
-ChatGPT genutzt um NASA daten herunterzuladen appears, war großes problem zunächst, aber hat dann geklappt, weil noch ein paar codes gefehlt hatten zur ursprünglichen anleitung im AGDS book die bei mir so allein nicht funktioniert hatte.
+AI (ChatGPT) was used to solve technical problems that could not be solved otherwise. For this report, this particularly concerned the download of DAYMET data, as the instructions from the appears package did not work at all in the beginning. 
 
-**Data**
-harvard phenocam data
-NASA data = DAYMET data
-climatdata??
-phenocam data zum validieren
+I used DeepL (free version) to check the grammatical correctness of some passages and improve them in terms of English scientific language.
 
-*PhenoCam Data:* Observations from the Harvard PhenoCam site were used to obtain time series of canopy greenness (GCC) and derive leaf-out dates for model calibration and validation.
-*DAYMET Data:* Daily gridded temperature data (Tmax and Tmin) were obtained from NASA DAYMET to calculate daily mean temperatures and accumulate growing degree days (GDD) for each year and across the spatial domain.
-*MODIS MCD12Q2:* The MODIS Land Surface Phenology product was used for spatial comparison of green-up dates. These satellite-derived phenology metrics provide an independent reference for evaluating the spatial patterns predicted by the GDD model.
+Last but not least, “R Markdown: The Definitive Guide” by Yihui Xie, J. J. Allaire, and Garrett Grolemund (2023) (available at: https://bookdown.org/yihui/rmarkdown/) served as a helpful guide to Markdown syntax.
 
-**Other Literature**
-Chuine, I. (2010). Why does phenology drive species distribution? Philosophical Transactions of the Royal Society B: Biological Sciences, 365(1555), 3149–3160.
+**Data** 
+(see also README in folder data_raw)
 
-Ellwood, E. R., Primack, R. B., Talmadge, M. L., Huang, H., Sargent, R. D., Hadley, J. L., & Willis, C. G. (2013). Record-breaking early flowering in the eastern United States. PLOS ONE, 8(1), e53788.
+*PhenoCam data:* Observations from the Harvard PhenoCam website were used to obtain time series of tree crown greenness (GCC) and derive leaf-out data for model calibration and validation.
 
-Friedl, M. A., Gray, J. M., Melaas, E. K., Richardson, A. D., Hufkens, K., Keenan, T. F., Bailey, A., & O’Keefe, J. (2014). A tale of two springs: Using recent climate anomalies to characterize the sensitivity of temperate forest phenology to climate change. Environmental Research Letters, 9(5), 054006.
+*DAYMET data:* Daily gridded temperature data (Tmax and Tmin) were obtained from NASA DAYMET to calculate daily average temperatures and accumulate growing degree days (GDD) for each year and across the entire spatial domain.
 
-Hufkens, K., Friedl, M. A., Keenan, T. F., Sonnentag, O., Bailey, A., O’Keefe, J., & Richardson, A. D. (2012). Ecological impacts of a widespread frost event following early spring leaf-out. Global Change Biology, 18(7), 2365–2377.
+*MODIS MCD12Q2:* The MODIS Land Surface Phenology product was used for spatial comparison of greening data. These phenological measurements derived from satellite data provide an independent reference for evaluating the spatial patterns predicted by the GDD model.
 
-NASA LP DAAC (2021). MODIS Land Cover Dynamics Product (MCD12Q2) User Guide. NASA Land Processes Distributed Active Archive Center.
-
-???????? Stocker, B. D., et al. (2023). Applied Geodata Science (Version 1.0). ETH Zürich.
-
-White, M. A., de Beurs, K. M., Didan, K., Inouye, D. W., Richardson, A. D., Jensen, O. P., O’Keefe, J., Zhang, G., Nemani, R. R., van Leeuwen, W. J. D., Brown, J. F., de Wit, A., Schaepman, M., Lin, X., Dettinger, M., Bailey, A. S., Kimball, J., Schwartz, M. D., Baldocchi, D. D., & Vrieling, A. (2009). Intercomparison, interpretation, and assessment of spring phenology in North America estimated from remote sensing for 1982–2006. Global Change Biology, 15(10), 2335–2359.
-
-Zhang, X., Wang, J., Henebry, G. M., Gao, F., & Anderson, M. C. (2020). Effects of temperature variability and extremes on spring phenology across the contiguous United States from 1982 to 2016. Scientific Reports, 10, 7989.
-
-Zhang, X., Friedl, M. A., Schaaf, C. B., & Strahler, A. H. (2018). Monitoring vegetation phenology using MODIS. Remote Sensing of Environment, 203, 196–210.
-
---> was dazuschreiben ob computational efficiency gemacht habe oder nicht???
---> brauche ich das wo ich unterschiedliche bilder anschaue von tagen im januar??oder nicht?? -> bzw. wenn drinhabe muss interpretieren und ist das limitation, weil nur 2010 daten?? von winter?? in AGDS book ist 2012 hä? nein ich zeige auch 2012, aber ich soll 2010 anschauen und diese daten sind nicht im modell drin, also habe nur 2012 daten drin in meinem model. heißt soviel wie modis zeigt was anderes als mein model??
-was war 2010? kalter winter, heißer sommer, blocking hä?
+**Additional Literature for information about the year 2010**
+Wang, C. et al. (2010). The record-breaking cold temperatures during the winter of 2009/2010 in the Northern Hemisphere. Atmospheric Science Letters. https://doi.org/10.1002/asl.278.

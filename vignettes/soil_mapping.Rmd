@@ -21,10 +21,10 @@ rm(list = ls()) # clear environment
 ```
 
 # 1. Introduction
-Soil conditions vary strongly across space and influence land use and infrastructure planning. One important soil property is waterlogging, which affects e.g. soil stability and drainage. In this exercise, the digital soil mapping workflow, from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (available here: https://geco-bern.github.io/tutorial_digital_soil_mapping/), using random forests is applied to the binary categorical variable waterlog.100. This variable indicates whether the soil is waterlogged at a depth of 100 cm (TRUE or FALSE) across the area of the canton of Bern. The analysis is based on soil data as point observations of soil properties from field sampling locations combined with a large set of spatially continuous environmental covariates. First, a simple random forest model using all predictors is trained and evaluated on a test dataset. Next, variable selection and hyperparameter optimization using cross validation are applied to improve model performance. Finally, probabilistic predictions are used to explore how different classification thresholds affect decision-making in different application contexts.
+Soil conditions vary strongly from place to place and influence land use and infrastructure planning. An important soil property is waterlogging, which affects soil stability and drainage, among other things. This exercise uses the digital soil mapping workflow from the tutorial “Digital Soil Mapping - Predicting soil properties from spatial data” by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (available at: https://geco-bern.github.io/tutorial_digital_soil_mapping/) is applied to the binary categorical variable waterlog.100. This variable indicates whether the soil is waterlogged at a depth of 100 cm throughout the canton of Bern (TRUE or FALSE). The analysis is based on soil data as point observations of soil properties from field sampling sites in combination with a large set of spatially continuous environmental covariates. First, a simple random forest model is trained using all predictors and evaluated using a test dataset. Next, variable selection and hyperparameter optimization are applied using cross-validation to improve model performance. Finally, probabilistic predictions are used to investigate how different classification thresholds affect decision-making in different application contexts.
 
 # 2. Re-implemention of the digital soil mapping workflow for waterlog.100
-The data required for this exercise was downloaded from the tutorial_digital_soil_mapping and preprocessed beforehand following the instructions of the tutorial and then stored in the data folder. The R Markdown file is linked to this folder, while the full code for preprocessing the raw data (see data_raw) is not shown in the rendered document.
+The data required for this exercise was downloaded from the tutorial “tutorial_digital_soil_mapping,” preprocessed according to the tutorial instructions, and then saved in the data folder. The R Markdown file is linked to this folder, while the complete code for preprocessing the raw data (see folder “data_raw”) is not displayed in the rendered document.
 
 ```{r}
 # required packages
@@ -174,7 +174,7 @@ saveRDS(df_full,
 ```
 
 ## 2.1 Simple model for waterlog.100
-waterlog.100 is a binary categorical variable that indicates whether the soil is waterlogged at a depth of 100 cm. In this workflow, it is encoded as 0 (not waterlogged) and 1 (waterlogged).
+waterlog.100 is a binary categorical variable that indicates whether the soil is waterlogged at a depth of 100 cm. In this workflow, it is coded as 0 (not waterlogged) and 1 (waterlogged).
 
 ### 2.1.1 Random forest for waterlog.100
 ```{r, results='hide'}
@@ -246,10 +246,10 @@ rf_basic_wl <- ranger::ranger(
 # print a summary of the fitted model
 print(rf_basic_wl) 
 ```
-The basic random forest model for waterlog.100 used 91 predictor variables and the gini split rule. The out-of-bag (OOB) prediction error is 21.49%, which gives an estimate of how often the model makes wrong predictions on new data. This number means the model misclassified about 1 in 5 samples during training.
+The basic random forest model for waterlog.100 used 91 predictor variables and the gini splitrule. The out-of-bag prediction error (OOB) is 21.49%, which provides an estimate of how often the model makes incorrect predictions for new data. This figure means that the model misclassified approximately 1 in 5 samples during training.
 
 ### 2.1.2 Model performance on the test dataset 
-In the following the model is evaluated on the test data, using appropriate metrics, including the visualisation of a confusion matrix, from the AGDS Book Chapter 9.4.1.2. (https://geco-bern.github.io/agds_book/regression_classification.html#metrics-for-classification).
+In the following, the model is evaluated using appropriate metrics, including the visualization of a confusion matrix, from AGDS Book Chapter 9.4.1.2. (https://geco-bern.github.io/agds_book/regression_classification.html#metrics-for-classification) based on the test dataset.
 ```{r}
 # predictions on the test dataset (basic model, direct class predictions 0/1)
 pred_test_basic <- predict(
@@ -309,7 +309,7 @@ metrics_basic <- data.frame(
 
 metrics_basic
 ```
-The basic model has an **accuracy** (overall proportion of correct predictions) of **76%**, with a **precision** (proportion of predicted waterlogged soils that are actually waterlogged) of **65%**, a **true positive rate** (proportion of actual waterlogged soils correctly predicted) of **69%**, and a **false positive rate** (proportion of non-waterlogged soils incorrectly predicted as waterlogged) of **20%**. This means the model correctly predicts most cases, but some waterlogged soils are still missed. The same information can be seen in Figure 1 (confusion matrix above), where the largest block represents the correctly predicted non-waterlogged cases (TRUE negatives).
+The basic model has an **accuracy** (total proportion of correct predictions) of **76%**, a **precision** (proportion of predicted waterlogged soils that are actually waterlogged) of **65%**, a **true positive rate** (proportion of actually waterlogged soils that were correctly predicted) of **69%**, and a **false positive rate** (proportion of non-waterlogged soils that were incorrectly predicted as waterlogged) of **20%**. This means that the model correctly predicts most cases, but still overlooks some waterlogged soils. The same information can be seen in Figure 1 (confusion matrix above), where the largest block represents the correctly predicted non-waterlogged cases (TRUE negatives).
 
 ```{r}
 # absolute frequencies of each class
@@ -320,15 +320,16 @@ table(df_test_wl[[target_wl]])
 # percentage of each class
 prop.table(table(df_test_wl[[target_wl]]))
 ```
-The absolute frequencies of the observed classes in the test data are 70 for waterlogged (class 1) and 130 for non-waterlogged (class 0) soils. In percentages, this corresponds to 35% waterlogged and 65% non-waterlogged soils in the dataset. This means the data is not balanced because there are more non-waterlogged samples (130) than waterlogged samples (70). A balanced dataset would have roughly the same number of samples in each class. This means that accuracy alone can be misleading, since the model could be mostly correct by predicting the majority class (that is the non-waterlogged soils). Therefore it is important to also look at precision, true positive rate, and false positive rate to see how well the model predicts the waterlogged soils.
+The absolute frequencies of the observed classes in the test data are 70 for waterlogged (class 1) and 130 for non-waterlogged (class 0) soils. In percentage terms, this corresponds to 35% water-saturated and 65% non-water-saturated soils in the dataset. This means that the data is not balanced, as there are more non-water-saturated samples (130) than water-saturated samples (70). A balanced dataset would have approximately the same number of samples in each class. This means that accuracy alone can be misleading, as the model could be largely correct by predicting the majority class (i.e., non-waterlogged soils). Therefore, it is important to also consider precision, the true positive rate, and the false positive rate to see how well the model predicts waterlogged soils.
 
-Overall, the basic model performs better than chance and finds most of the actual waterlogged soils, but it still predicts some areas as waterlogged that are not. Because the precision is lower than the true positive rate, this means that the model predicts waterlogged soils a little too often compared to the real cases.
+Overall, the baseline model performs better than chance and finds most of the actual waterlogged soils, but it still predicts some areas as waterlogged that are not. Since the precision is lower than the true positive rate, this means that the model predicts waterlogged soils slightly too often compared to the actual cases.
 
 ## 2.2 Variable selection 
-This section follows the tutorial to make the model simpler. First, variable importance is checked using the permutation method. Then Boruta is used to select the most important predictors. The model is retrained and tested to see how it performs compared to the model using all variables. The OOB error is also looked at to check the model choice.
+This section follows the tutorial to simplify the model. First, the variable significance is checked using the permutation method. Then, Boruta is used to select the most important predictors. The model is retrained and tested to check its performance compared to the model with all variables. The OOB error is also considered to verify the model selection.
 
 ### 2.2.1 Variable importance
-Variable importance is first calculated using the permutation method to see which predictors contribute most to the model.
+
+The variable importance is first calculated using the permutation method to determine which predictors contribute most to the model.
 ```{r }
 # ranger() crashes when using tibbles, so we are using the
 # base R notation to enter the data
@@ -364,7 +365,8 @@ Figure 2 shows that NegO (Topographic negative openness) ist the most important 
 This means these variables contribute the most to the model’s predictions and explain the most variation in whether a soil is waterlogged or not (most important variables at predicting the target variable waterlog.100). (Explanations for the other variables here: https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html).
 
 ### 2.2.2 Boruta variable selection
-In the following, Boruta as a variable selection method is used to identify the most important variables and remove predictors that do not significantly improve the model.
+
+In the following, Boruta is used as a variable selection method to identify the most important variables and remove predictors that do not significantly improve the model.
 ```{r }
 # boruta variable selection
 set.seed(42)
@@ -408,7 +410,7 @@ predictors_selected_wl <- df_bor_wl |>
 
 length(predictors_selected_wl)
 ```
-Using boruta, 39 variables were selected from the original set of 91 predictors for predicting the target variable waterlog.100. See figure 3 and descriptions under https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html for description of the abbreviations.
+With the help of Boruta, 39 variables were selected from the original set of 91 predictors to predict the target variable “waterlog.100.” A description of the abbreviations in Figure 3 can be found under “https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html”.
 
 ```{r }
 # retrain random forest model with the 39 selected predictors
@@ -423,7 +425,7 @@ rf_bor_wl <- ranger::ranger(
 # quick report and performance of retrained model object
 print(rf_bor_wl)
 ```
-The boruta based random forest model for waterlog.100 used 39 predictor variables. The out-of-bag (OOB) prediction error is 20.00% then, which is slightly lower and therefore better than the error of the basic model (which was 21.49%, see chapter 2.1.1).
+The Boruta-based random forest model for waterlog.100 used 39 predictor variables. The out-of-bag error (OOB) is then 20.00%, which is slightly lower and thus better than the error of the basic model (which was 21.49%, see section 2.1.1).
 
 ### 2.2.3 Model performance on the test dataset
 Now, the boruta model performance is tested on the test dataset (similar to what has been done in chapter 2.1.2 for the basic model).
@@ -487,12 +489,12 @@ metrics_bor <- data.frame(
 
 metrics_bor
 ```
-The boruta based model has an **accuracy** of **78.5%**, with a precision of **68%**, a **true positive rate** of **72.9%**, and a **false positive rate** of **18.5%**. The same pattern can be seen in Figure 2 (confusion matrix above), where the correctly predicted cases dominate.
+The Boruta-based model has an **accuracy** of **79%**, a precision of **68%**, a **true positive rate** of **73%**, and a **false positive rate** of **18%**. The same pattern can be seen in Figure 2 (confusion matrix above), where correctly predicted cases predominate.
 
 ### 2.2.4 Comparison: Simple (basic) model vs. model with variable selection (boruta)
 **Which model generalises better to unseen data?**
 
-**Performance metrics:** Comparing the performance metrics of the two models shows that the boruta based model performs slightly better on the test data than the basic model. It has higher accuracy (78.5% vs. 76%), higher precision (68% vs. 64.9%), a higher true positive rate (72.9% vs. 68.6%), and a lower false positive rate (18.5% vs. 20%) than the basic model. This shows a slight improvement compared to the basic model, with about 1.5% fewer false predictions. This indicates that the boruta model generalizes slightly better to unseen data. However, the improvement is very small, and when visually comparing the two confusion matrixes (Figure 1 and Figure 4), this difference is not noticeable.
+**Performance metrics:** A comparison of the performance metrics of the two models shows that the boruta-based model performs slightly better than the basic model on the test data. It has higher accuracy (79% vs. 76%), higher precision (68% vs. 65%), a higher true positive rate (73% vs. 69%), and a lower false positive rate (18% vs. 20%) than the basic model. This shows a slight improvement over the basic model with about 1.5% fewer false predictions. This suggests that the boruta model generalizes slightly better to unknown data. However, the improvement is very small, and when visually comparing the two confusion matrices (Figure 1 and Figure 4), this difference is not apparent.
 
 ```{r } 
 # comparison of OBB prediction errors
@@ -501,14 +503,15 @@ rf_bor_wl$prediction.error
 ```
 
 **OBB comparison:** 
-The out-of-bag (OOB) prediction error for the basic model is 0.214876 (~21.49%), while the boruta based model has an OOB error of 0.2 (20.00%). Since the Boruta model has a slightly lower OOB error, so YES, it would still be chosen as the better model if the decision was based only on OOB error. However, the difference is very small, so both models perform quite similarly according to the OBB results.
+The out-of-bag error (OOB) for the baseline model is 0.214876 (~21.49%), while the Boruta-based model has an OOB error of 0.2 (20.00%). Since the Boruta model has a slightly lower OOB error, it would still be selected as the better model if the decision were based solely on the OOB error. However, the difference is very small, so both models perform quite similarly according to the OBB results.
 
 # 3. Model optimization
-Using the training data subset, implement a 5-fold cross-validation to optimise the hyperparameters mtry and min.node.size of the same Random Forest model as implemented above. You may use the {caret} library
-Evaluate the optimized model on the test set using the same metrics as considered above. Does the model generalise better to unseen data than the initial model (which used default hyperparameters, see ?ranger::ranger) 
+
+To improve model performance, a 5-fold cross-validation was applied to tune the hyperparameters of the random forest model.
 
 ## 3.1 Hyperparameter tuning
-For the hyperparameter tuning I use the approach, given in the AGDS book (this chapter: https://geco-bern.github.io/agds_book/randomforest.html#from-trees-to-a-forest) with the common default values mtry = sqrt(p) for classification (p=number of predictions). The values 1,3,5,10,15,20 are used for .min.node.size to avoid possible overfitting when the model creates overly deep trees with very small terminal nodes.
+
+For hyperparameter tuning, I use the approach from the AGDS book (this chapter: https://geco-bern.github.io/agds_book/randomforest.html#from-trees-to-a-forest) with the usual default values mtry = sqrt(p) for classification (p = number of predictions). The values 1,3,5,10,15,20 are used for .min.node.size to avoid possible overfitting if the model creates trees that are too deep with very small terminal nodes.
 
 ```{r }
 # define hyperparameter grid for tuning
@@ -553,7 +556,7 @@ print(mod_cv) # print cross validation results
 ggplot(mod_cv) # visualize tuning hyperparameters results
 ```
 
-For the classification of the tuning parameters the splitrule "gini" and the metric "Accuracy" was used. The final values used for the model with a number of 2000 trees, were mtry = 8, and min.node.size = 5, giving an accuracy of 0.7982676. The plot (figure 5) shows that the differences in cross-validation accuracy between the different mtry-values (4, 6, 8) are very small (varies only slightly between about 0.785 and 0.798). (This indicates that the performance of the model is not very sensitive (not really big differences in accuracy) to the choice of the number of randomly selected predictors.)
+The splitrule “gini” and the metric “accuracy” were used to classify the tuning parameters. The final values for the model with a number of **2000 trees** were **mtry = 8** and **min.node.size = 5**, which resulted in an **accuracy of 0.7982676**. The graph (Figure 5) shows that the differences in cross-validation accuracy between the different mtry values (4, 6, 8) are very small (they vary only slightly between about 0.785 and 0.798). (This suggests that the performance of the model is not very sensitive (no really large differences in accuracy) to the choice of the number of randomly selected predictors).
 
 ## 3.2 Evaluation on the test dataset
 ```{r }
@@ -606,15 +609,15 @@ metrics_cv <- data.frame(
 metrics_cv
 ```
 
-The optimized model achieved an accuracy of 78.0%, with a precision of 67.1%, a true positive rate of 72.9%, and a false positive rate of 19.2%. A similar pattern is visible in Figure 6 (confusion matrix of the optimised model), where it can be seen that the correctly predicted cases are the majority.
+The optimized model achieved an **accuracy of 78%**, a **precision of 67%**, a **true positive rate of 73%**, and a **false positive rate of 19%**. A similar pattern can be seen in Figure 6 (confusion matrix of the optimized model), where it is clear that correctly predicted cases represent the majority.
 
 ## 3.3 Comparison initial model (basic model) vs. model with tuned hyperparameters 
-From the R help documentation, one can read that for ranger::ranger the default hyperparameters for classification are as follows: num.trees = 500, mtry = sqrt(p) (rounded) (where p is the number of predictors), min.node.size = 1 , and splitrule = gini. 
-Using these defaults, the initial basic model achieved an accuracy of 76.0%, a precision of 64.9%, a true positive rate of 68.6%, and a false positive rate of 20.0%.
-The optimized model, in which hyperparameters (.mtry and min.node.size) were tuned, achieved slightly higher accuracy (78.0%), precision (67.1%), and true positive rate (72.9%), and slightly lower false positive rate (19.2%). This indicates that hyperparameter tuning provided a modest improvement over the basic model. 
-Looking at the confusion matrix of the basic model (Figure 1) and the optimized model (Figure 6), the false positives and false negatives are a bit smaller in the optimized model. But the differences are small, so it is hard to see a clear improvement just from the confusion matrices.
+The R help documentation indicates that for ranger::ranger, the default hyperparameters for classification are as follows: num.trees = 500, mtry = sqrt(p) (rounded) (where p is the number of predictors), min.node.size = 1, and splitrule = gini. 
+With these default settings, the initial base model achieved an accuracy of 76%, a precision of 65%, a true positive rate of 69%, and a false positive rate of 20%.
+The optimized model, in which the hyperparameters (.mtry and min.node.size) were adjusted, achieved slightly higher accuracy (78%), precision (67%), and true positive rate (73%), as well as a slightly lower false positive rate (19%). This shows that adjusting the hyperparameters resulted in a moderate improvement over the base model. 
+Looking at the confusion matrix of the baseline model (Figure 1) and the optimized model (Figure 6), the false positive and false negative values are slightly lower in the optimized model. However, the differences are small, so no significant improvement can be seen looking at the confusion matrices alone.
 
-*Comment on the performance of the boruta model (no hyperparameter tuning): Using 39 selected features, performed better than the hyperparameter-tuned model based on the same features. It achieved 78.5% accuracy, 68% precision, 72.9% true positive rate, and 18.5% false positive rate, while the tuned model was slightly worse. This indicates that the Boruta model was robust with respect to the default hyperparameters of the random forest, meaning that its predictive performance was already stable and not highly sensitive to changes in mtry or min.node.size. But there are other reasons why hyperparameter tuning is important: it can improve model efficiency and reduce computation time by avoiding overly complex trees and can also (not in my case here but in general) improve the model performance when the default settings are not optimal for the specific dataset (for example class imbalances or too complex data structures).*
+*Comment on the performance of the Boruta model (without hyperparameter optimization): With 39 selected features, it performed better on the test data than the model based on the same features with optimized hyperparameters. The Boruta model achieved an accuracy of 79%, a precision of 68%, a true positive rate of 73%, and a false positive rate of 18%, while the optimized model performed slightly worse. However, the model with optimized hyperparameters showed high accuracy on the training data (0.7982676). In summary, however, the Boruta model was robust with respect to the default hyperparameters of the random forest, meaning that its predictive performance was already stable and not very sensitive to changes in mtry or min.node.size. However, there are other reasons why optimizing hyperparameters is important: it can improve model efficiency and reduce computation time by avoiding overly complex trees, and it can (not visible in my case, but in general) improve model performance when the default settings are not optimal for the specific dataset (e.g., class imbalances or overly complex data structures).*
 
 # 4. Probabilistic predictions
 ## 4.1 Random forest model with optimised hyperparameters
@@ -676,26 +679,40 @@ ggplot(roc_df, aes(x = FPR, y = TPR)) +
     panel.grid.minor = element_blank()
   )
 ```
-In the plot, the ROC (Receiver Operating Characteristic) curve shows the true positive rate (TPR) versus the false positive rate (FPR) for different threshold values. The diagonal red line represents a random classifier (AUC = 0.5), while the blue line illustrates the model’s performance. The closer the blue line is to the top-left corner, the better the separation between the two classes waterlogged/not waterlogged (points higher on the line (toward the top-left) mean the model correctly identifies more waterlogged areas (higher TPR) while making fewer mistakes on non-waterlogged areas (lower FPR)).The AUC for my model is approximately 0.8 , indicating a good ability to distinguish between waterlogged and non-waterlogged conditions (AUC of 1 would indicate a perfect model). The blue line also demonstrates how TPR and FPR change across all possible thresholds. The threshold is the probability cut-off used to turn predicted probabilities into a yes/no classification. A lower threshold labels more cases as positive (catches more true positives but also more false positives) and a higher threshold is more conservative (reduces false positives but missing some true positives). 
+In the graph, the ROC (Receiver Operating Characteristic) curve shows the true positive rate (TPR) compared to the false positive rate (FPR) for different thresholds. The diagonal red line represents a random classifier (AUC = 0.5), while the blue line illustrates the performance of the model. The closer the blue line is to the upper left corner, the better the separation between the two classes “waterlogged/not waterlogged” (points further up the line (towards the upper left corner) mean that the model correctly identifies more waterlogged areas (higher TPR) and at the same time makes fewer errors in non-waterlogged areas (lower FPR)).
+The AUC value for my model is around 0.8, which indicates good discrimination between water-saturated and non-waterlogged conditions (an AUC value of 1 would mean a perfect model). The blue line also shows how TPR and FPR change across all possible thresholds. The threshold is the probability cutoff used to convert predicted probabilities into a yes/no classification. A lower threshold labels more cases as positive (captures more true positives but also more false positives), while a higher threshold is more conservative (reduces false positives but misses some true positives). 
+
+One could further plot the predictions to have a visual overview of waterlogged/no-waterlogged areas in the area of the canton of Bern (see instructions here: https://geco-bern.github.io/tutorial_digital_soil_mapping/04-model_analysis.html). As it is not absolutely needed to solve this exercise, it is not part of this markdown, but I want to highlight, that there are further possibilities to continue after having done the probabilitistic predictions.
 
 ## 4.3 Choice / Interpretation of threshold
-For a project where waterlogged soils critically affect stability, a low threshold should be chosen to maximize the detection of all waterlogged areas, even if it increases the false alarms. For a project where waterlogging is unwanted but not critical, a higher threshold is preferable to reduce false positives, with accepting that some waterlogged areas may be missed. The thresholds are different for eacht case because the risk tolerance differs. 
-Another analogy can be found in medical testing: For example for a critical disease like cancer, a low threshold is used to avoid missing cases, while for minor conditions (e.g. a normal mild winter cold) missing a few cases is not dangerous, and it avoids unnecessary interventions. This is similar to choosing a higher threshold for a non-critical waterlogging project.
+For a project where waterlogged soils critically affect stability, a low threshold should be selected to maximize the detection of all waterlogged areas, even if this leads to an increase in false alarms. In a project where waterlogging is undesirable but not critical, a higher threshold is preferable to reduce false alarms, accepting that some waterlogged areas may be overlooked. The thresholds are different for each case because the risk tolerance is different. 
+Another analogy can be found in medical testing: for a critical disease such as cancer, for example, a low threshold is used to avoid missed cases, while for minor illnesses (e.g., a normal mild winter cold), missing some cases is not dangerous and unnecessary interventions are avoided. This is similar to choosing a higher threshold for a non-critical waterlogging project.
 
 # 5. References & Declaration of Authorship
-I hereby declare, that I (Salome Hayler) did this report by myself. It is based on foundational codes and general information from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. AI (ChatGPT) was consulted for resolving technical difficulties that could not be addressed otherwise, which includes for this report especially the pROC package, that didn't work in the beginning to plot the ROC curve. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/) was used as a helpful guide on markdown syntax.
+I hereby declare that I (Salome Hayler) have written this report myself. It is based on basic codes and general information from the tutorial “Digital Soil Mapping – Predicting soil properties from spatial data” by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book “Applied Geodata Science (v1.0)” by Benjamin Stocker et. al (2023), and information from lectures (given by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All other sources of information are listed in this section and have been cited in the text. 
+
+AI (ChatGPT) was used to solve technical problems that could not be solved otherwise, including, in particular, the pROC package, which initially did not work for plotting the ROC curve (see also additional literature). 
+
+I used DeepL (free version) to check the grammatical correctness of some passages and improve them in terms of English scientific language.
+
+Last but not least, “R Markdown: The Definitive Guide” by Yihui Xie, J. J. Allaire, and Garrett Grolemund (2023) (available at: https://bookdown.org/yihui/rmarkdown/) served as a helpful guide to Markdown syntax.
 
 **Data**
 
-The report is based on the following original data from https://github.com/geco-bern/tutorial_digital_soil_mapping (in the folder data_raw), which were preprocessed prior to the further analysis (see code chunks in the beginning of the skript) and then stored in the folder data. 
+The report is based on the following original data from https://github.com/geco-bern/tutorial_digital_soil_mapping (in the data_raw folder), which was preprocessed prior to further analysis (see code snippet at the beginning of the script) and then stored in the data folder. 
 
-*Soil data:* Soil observations from sampling locations across the canton of Bern, including the binary variable waterlog.100, which indicates whether soils are waterlogged at 100 cm depth.
+*Soil data:* 
 
-*Environmental covariates:* This dataset contains originally 99 spatial environmental covariates provided as raster layers. (Full list on content here: https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html). After preprocessing / cleaning the original data only 91 variables remained that were available for the further use.
+Soil observations from sampling sites in the canton of Bern, including the binary variable waterlog.100, which indicates whether soils are waterlogged at a depth of 100 cm.
+
+*Environmental covariates:* 
+
+This dataset originally contains 99 spatial environmental covariates, which are provided as raster layers. (Full list of content here: https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html). After preprocessing/cleaning the original data, only 91 variables remained available for further use.
 
 **Additional Literature**
-In addition to the tutorial "Digital soil mapping - Predicting soil properties form spatial data" and the AGDS book chapters on random forests, model evaluation, variable selection, classification metrics, hyperparameter tuning some other sources were consulted for this report.
 
-The R documentations for the ranger package and the pROC curve were used to get an understanding of the random forest implementation and ROC curves.
+In addition to the tutorial “Digital Soil Mapping – Predicting Soil Properties Using Spatial Data” and the AGDS book chapters on random forests, model evaluation, variable selection, classification metrics, and hyperparameter tuning, several other sources were consulted for this report.
 
-Regarding the latter, two additional articles were also helpful: Fawcett, T. (2006). An introduction to ROC analysis. Pattern Recognition Letters, 27(8), 861-874. https://doi.org/10.1016/j.patrec.2005.10.010. And Robin, X. et al. (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics 12(77). https://doi.org/10.1186/1471-2105-12-77.
+The R documentation for the Ranger package and the pROC curve were used to gain an understanding of the implementation of random forests and ROC curves.
+
+Two additional articles were helpful in relation to the latter: Fawcett, T. (2006). An introduction to ROC analysis. Pattern Recognition Letters, 27(8), 861-874. https://doi.org/10.1016/j.patrec.2005.10.010  . And Robin, X. et al. (2011). pROC: an open-source package for R and S+ for analyzing and comparing ROC curves. BMC Bioinformatics 12(77). https://doi.org/10.1186/1471-2105-12-77.
