@@ -12,3 +12,5 @@ For the Digital Soil Mapping exercise, the covariates constitute an extremely la
 Remark: The knitting process may take some time, especially for the Phenology Modelling report, because MODIS and Phenocam data need to be loaded and processed. Additionally, steps such as hyperparameter tuning for random forests (2000 trees) can increase computation time. The loop for automatic installation of missing packages at the start may also slow down the knitting process.
 
 All references and data sources used are indicated in the respective R Markdown or knitted HTML files.
+
+Contact information (in case of any questions/problems regarding the content of this repository): salome.hayler@students.unibe.ch
