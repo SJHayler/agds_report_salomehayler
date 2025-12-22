@@ -249,7 +249,7 @@ print(rf_basic_wl)
 The basic random forest model for waterlog.100 used 91 predictor variables and the gini split rule. The out-of-bag (OOB) prediction error is 21.49%, which gives an estimate of how often the model makes wrong predictions on new data. This number means the model misclassified about 1 in 5 samples during training.
 
 ### 2.1.2 Model performance on the test dataset 
-In the following the model is evaluated on the test data, using appropriate metrics, including the visualisation of a confusion matrix, from AGDS Book Chapter 9.4.1.2. (https://geco-bern.github.io/agds_book/regression_classification.html#metrics-for-classification).
+In the following the model is evaluated on the test data, using appropriate metrics, including the visualisation of a confusion matrix, from the AGDS Book Chapter 9.4.1.2. (https://geco-bern.github.io/agds_book/regression_classification.html#metrics-for-classification).
 ```{r}
 # predictions on the test dataset (basic model, direct class predictions 0/1)
 pred_test_basic <- predict(
