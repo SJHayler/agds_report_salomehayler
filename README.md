@@ -5,7 +5,11 @@ Submission/last update on the 22.12.2025
 
 This repository contains my solutions for the exercises Phenology Modelling and Digital Soil Mapping. The reports were created with the R version 4.5.1.
 
-Required data can be found in the original sources (/raw_data) and is automatically linked in the R Markdown scripts. For faster computation, some of the data for both reports was downloaded and preprocessed and then stored in the /data folder. The scripts refer to this folder to run without downloading all the data again. The original code for downloading the data is still included in the R Markdown files.
+Project structure: 
+
+The R Markdown files can be found in the folder /vignettes. For reproducibility open the .Rmd-files in the R project (agds_report_salomehayler) and press on knit in R Studio.
+
+Required data (that isn't installed automatically during the rendering of the scirpts) can be found in the folder /raw_data and is automatically linked in the R Markdown scripts. For faster computation, some of the data for both reports was downloaded and preprocessed and then stored in the /data folder. The scripts refer to this folder to run without downloading all the data again. The original code for downloading the data is still included in the R Markdown files.
 
 For the Digital Soil Mapping exercise, the covariates constitute an extremely large dataset. Because the TIFF files are very large, this folder could not be uploaded to GitHub. If you want to access the original covariates for preprocessing, please check the data_raw folder in the README, which contains a link to the repository for the soil data. This allows downloading the full dataset to your personal computer. However, downloading the original covariates is *not necessary (!)* to run the R Markdown script, as the script is already linked to the preprocessed soildata in the /data folder.
 
