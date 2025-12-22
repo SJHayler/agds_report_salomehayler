@@ -1,6 +1,6 @@
 # data sources
 
-This folder contains the raw data used for the exercises Phenology Modelling and Digital Soil Mapping, that isn't downloaded automatically again when knitting the R script.
+This folder contains the parts of original data, that are used for the exercises Phenology Modelling and Digital Soil Mapping, and aren't downloaded automatically again when knitting the R script.
 
 *Remark*: Downloading the original datasets is NOT necessary to run the scripts (!). The preprocessed soil data used in the R Markdown script soil_mapping.Rmd is already linked in ../data.
 
