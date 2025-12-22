@@ -691,9 +691,9 @@ Another analogy can be found in medical testing: for a critical disease such as 
 # 5. References & Declaration of Authorship
 I hereby declare that I (Salome Hayler) have written this report myself. It is based on basic codes and general information from the tutorial “Digital Soil Mapping – Predicting soil properties from spatial data” by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book “Applied Geodata Science (v1.0)” by Benjamin Stocker et. al (2023), and information from lectures (given by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All other sources of information are listed in this section and have been cited in the text. 
 
-AI (ChatGPT) was used to solve technical problems that could not be solved otherwise, including, in particular, the pROC package, which initially did not work for plotting the ROC curve (see also additional literature). 
+AI (ChatGPT) was used to solve some technical problems regarding the code that could not be solved otherwise, including, in particular, the pROC package, which initially did not work for plotting the ROC curve (see also additional literature). 
 
-I used DeepL (free version) to check the grammatical correctness of some passages and improve them in terms of English scientific language.
+I used DeepL (free version) to check the grammatical correctness of some text passages and improve them in terms of English scientific language.
 
 Last but not least, “R Markdown: The Definitive Guide” by Yihui Xie, J. J. Allaire, and Garrett Grolemund (2023) (available at: https://bookdown.org/yihui/rmarkdown/) served as a helpful guide to Markdown syntax.
 

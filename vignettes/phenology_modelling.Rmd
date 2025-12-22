@@ -905,9 +905,9 @@ This temporal discrepancy explains why the spatially leaf-out respectively green
 # 6. References & Declaration of Authorship
 I hereby declare that I (Salome Hayler) have written this report myself. It is based on fundamental codes and general information from the book “A Handful of Pixels” by Koen Hufkens (2025), general information from the book “Applied Geodata Science (v1.0)” by Benjamin Stocker et. al (2023), and information from lectures (by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All other sources of information are listed in this section and have been cited in the text. 
 
-AI (ChatGPT) was used to solve technical problems that could not be solved otherwise. For this report, this particularly concerned the download of DAYMET data, as the instructions from the appears package did not work at all in the beginning. 
+AI (ChatGPT) was used to solve technical problems regarding the code, that could not be solved otherwise. For this report, this particularly concerned the download of DAYMET data, as the instructions from the appears package did not work at all in the beginning. 
 
-I used DeepL (free version) to check the grammatical correctness of some passages and improve them in terms of English scientific language.
+I used DeepL (free version) to check the grammatical correctness of some text passages and improve them in terms of English scientific language.
 
 Last but not least, “R Markdown: The Definitive Guide” by Yihui Xie, J. J. Allaire, and Garrett Grolemund (2023) (available at: https://bookdown.org/yihui/rmarkdown/) served as a helpful guide to Markdown syntax.
 
@@ -921,4 +921,5 @@ Last but not least, “R Markdown: The Definitive Guide” by Yihui Xie, J. J. A
 *MODIS MCD12Q2:* The MODIS Land Surface Phenology product was used for spatial comparison of greening data. These phenological measurements derived from satellite data provide an independent reference for evaluating the spatial patterns predicted by the GDD model.
 
 **Additional Literature for information about the year 2010**
+
 Wang, C. et al. (2010). The record-breaking cold temperatures during the winter of 2009/2010 in the Northern Hemisphere. Atmospheric Science Letters. https://doi.org/10.1002/asl.278.
