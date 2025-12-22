@@ -21,9 +21,7 @@ rm(list = ls()) # clear environment
 ```
 
 # 1. Introduction
-Soil conditions vary strongly across space and influence land use and infrastructure planning. One important soil property is waterlogging, which affects e.g. soil stability and drainage. In this exercise, the digital soil mapping workflow, from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023), using random forests is applied to the binary categorical variable waterlog.100. This variable indicates whether the soil is waterlogged at a depth of 100 cm (TRUE or FALSE). First, a simple random forest model using all predictors is trained and evaluated on a test dataset. Next, variable selection and hyperparameter optimization using cross validation are applied to improve model performance. Finally, probabilistic predictions are used to explore how different classification thresholds affect decision-making in different application contexts.
-
-??? noch hier reinschreiben, welche daten ich verwende (see more in chapter 5)
+Soil conditions vary strongly across space and influence land use and infrastructure planning. One important soil property is waterlogging, which affects e.g. soil stability and drainage. In this exercise, the digital soil mapping workflow, from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (available here: https://geco-bern.github.io/tutorial_digital_soil_mapping/), using random forests is applied to the binary categorical variable waterlog.100. This variable indicates whether the soil is waterlogged at a depth of 100 cm (TRUE or FALSE) across the area of the canton of Bern. The analysis is based on soil data as point observations of soil properties from field sampling locations combined with a large set of spatially continuous environmental covariates. First, a simple random forest model using all predictors is trained and evaluated on a test dataset. Next, variable selection and hyperparameter optimization using cross validation are applied to improve model performance. Finally, probabilistic predictions are used to explore how different classification thresholds affect decision-making in different application contexts.
 
 # 2. Re-implemention of the digital soil mapping workflow for waterlog.100
 The data required for this exercise was downloaded from the tutorial_digital_soil_mapping and preprocessed beforehand following the instructions of the tutorial and then stored in the data folder. The R Markdown file is linked to this folder, while the full code for preprocessing the raw data (see data_raw) is not shown in the rendered document.
@@ -328,6 +326,7 @@ Overall, the basic model performs better than chance and finds most of the actua
 
 ## 2.2 Variable selection 
 This section follows the tutorial to make the model simpler. First, variable importance is checked using the permutation method. Then Boruta is used to select the most important predictors. The model is retrained and tested to see how it performs compared to the model using all variables. The OOB error is also looked at to check the model choice.
+
 ### 2.2.1 Variable importance
 Variable importance is first calculated using the permutation method to see which predictors contribute most to the model.
 ```{r }
@@ -614,9 +613,8 @@ From the R help documentation, one can read that for ranger::ranger the default 
 Using these defaults, the initial basic model achieved an accuracy of 76.0%, a precision of 64.9%, a true positive rate of 68.6%, and a false positive rate of 20.0%.
 The optimized model, in which hyperparameters (.mtry and min.node.size) were tuned, achieved slightly higher accuracy (78.0%), precision (67.1%), and true positive rate (72.9%), and slightly lower false positive rate (19.2%). This indicates that hyperparameter tuning provided a modest improvement over the basic model. 
 Looking at the confusion matrix of the basic model (Figure 1) and the optimized model (Figure 6), the false positives and false negatives are a bit smaller in the optimized model. But the differences are small, so it is hard to see a clear improvement just from the confusion matrices.
-????????????
-Comment on the performance of the boruta model (no hyperparameter tuning): Using 39 selected features, performed better than the hyperparameter-tuned model based on the same features. It achieved 78.5% accuracy, 68% precision, 72.9% true positive rate, and 18.5% false positive rate, while the tuned model was slightly worse. This shows that, in this case, tuning the hyperparameters did not improve performance.
-??????????? irgendwie dazuschreiben, dass davor robuster war?? wieso macht man hyperparameter tuning trotzdem?? vielleicht extra um weniger computation?? 
+
+*Comment on the performance of the boruta model (no hyperparameter tuning): Using 39 selected features, performed better than the hyperparameter-tuned model based on the same features. It achieved 78.5% accuracy, 68% precision, 72.9% true positive rate, and 18.5% false positive rate, while the tuned model was slightly worse. This indicates that the Boruta model was robust with respect to the default hyperparameters of the random forest, meaning that its predictive performance was already stable and not highly sensitive to changes in mtry or min.node.size. But there are other reasons why hyperparameter tuning is important: it can improve model efficiency and reduce computation time by avoiding overly complex trees and can also (not in my case here but in general) improve the model performance when the default settings are not optimal for the specific dataset (for example class imbalances or too complex data structures).*
 
 # 4. Probabilistic predictions
 ## 4.1 Random forest model with optimised hyperparameters
@@ -648,7 +646,7 @@ true_class <- as.numeric(as.character(df_test_wl[[target_wl]]))
 ```
 
 ## 4.2 Reicever-operating-characteristic (ROC) curve
-I used the information from the pROC package (https://search.r-project.org/CRAN/refmans/pROC/html/pROC-package.html) for plotting the ROC curve.
+I used the information from the pROC package (https://search.r-project.org/CRAN/refmans/pROC/html/pROC-package.html) as well as information from other papers (see section 5) for plotting and understanding the ROC curve.
 ```{r, message=FALSE, warning=FALSE}
 # calculate ROC (receiver operating characteristic curce) & AUC (area under curve)
 roc_obj <- roc(true_class, prob_waterlog)
@@ -685,23 +683,19 @@ For a project where waterlogged soils critically affect stability, a low thresho
 Another analogy can be found in medical testing: For example for a critical disease like cancer, a low threshold is used to avoid missing cases, while for minor conditions (e.g. a normal mild winter cold) missing a few cases is not dangerous, and it avoids unnecessary interventions. This is similar to choosing a higher threshold for a non-critical waterlogging project.
 
 # 5. References & Declaration of Authorship
-I hereby declare, that I wrote this report myself. It is based on foundational codes and general information from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/r-code.html) was used as a helpful guide on markdown syntax.
-
-?????????? chat für problem with the curve???
+I hereby declare, that I (Salome Hayler) did this report by myself. It is based on foundational codes and general information from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. AI (ChatGPT) was consulted for resolving technical difficulties that could not be addressed otherwise, which includes for this report especially the pROC package, that didn't work in the beginning to plot the ROC curve. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/) was used as a helpful guide on markdown syntax.
 
 **Data**
-The Report is based on following original data. Damit preprocessing von data gemacht und dann in ordner abgelegt.
-soil data: soil properties (including ?? wieviele variabeln) from locations across canton of Bern. https://github.com/geco-bern/tutorial_digital_soil_mapping
-climate: climatic variables (???). Numerisch
 
-**Other Literature**
-hier nochmal html links nennen, R dokumentation for ranger::ranger und für pROC. und markdown schreiben. AGDS book welche kapitel.
-for interpretation and how to read a ROC curve also 
-Wright, M. N., & Ziegler, A. (2017).
-ranger: A Fast Implementation of Random Forests for High Dimensional Data in C++ and R.
-Journal of Statistical Software, 77(1), 1–17.
-https://doi.org/10.18637/jss.v077.i01
-Zur ROC-Kurve:
-Xavier Robin et al. (2011).
-pROC: an open-source package for R and S+ to analyze and compare ROC curves.
-BMC Bioinformatics 12:77.
+The report is based on the following original data from https://github.com/geco-bern/tutorial_digital_soil_mapping (in the folder data_raw), which were preprocessed prior to the further analysis (see code chunks in the beginning of the skript) and then stored in the folder data. 
+
+*Soil data:* Soil observations from sampling locations across the canton of Bern, including the binary variable waterlog.100, which indicates whether soils are waterlogged at 100 cm depth.
+
+*Environmental covariates:* This dataset contains originally 99 spatial environmental covariates provided as raster layers. (Full list on content here: https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html). After preprocessing / cleaning the original data only 91 variables remained that were available for the further use.
+
+**Additional Literature**
+In addition to the tutorial "Digital soil mapping - Predicting soil properties form spatial data" and the AGDS book chapters on random forests, model evaluation, variable selection, classification metrics, hyperparameter tuning some other sources were consulted for this report.
+
+The R documentations for the ranger package and the pROC curve were used to get an understanding of the random forest implementation and ROC curves.
+
+Regarding the latter, two additional articles were also helpful: Fawcett, T. (2006). An introduction to ROC analysis. Pattern Recognition Letters, 27(8), 861-874. https://doi.org/10.1016/j.patrec.2005.10.010. And Robin, X. et al. (2011). pROC: an open-source package for R and S+ to analyze and compare ROC curves. BMC Bioinformatics 12(77). https://doi.org/10.1186/1471-2105-12-77.
