@@ -21,17 +21,12 @@ rm(list = ls()) # clear environment
 ```
 
 # 1. Introduction
-A lot of different factors influence soil conditions, mostly influenced by XXX (formel soil)
-soil formula hinschreiben und soil factors nennen
-It is of interest to map soil conditions over larger areas
-climate change, water conditions
-This tutorial shows a digital soil mapping flow for the categorial variable waterlog.100 (explanation variable) -> variable erklären was die ist und was anzeigt?
-The data used includes different variables, from which sampling locations around Bern?
-Was ich mache in diesem Markdown und worum es geht
-wieso ist thema wichtig?
+Soil conditions vary strongly across space and influence land use and infrastructure planning. One important soil property is waterlogging, which affects e.g. soil stability and drainage. In this exercise, the digital soil mapping workflow, from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023), using random forests is applied to the binary categorical variable waterlog.100. This variable indicates whether the soil is waterlogged at a depth of 100 cm (TRUE or FALSE). First, a simple random forest model using all predictors is trained and evaluated on a test dataset. Next, variable selection and hyperparameter optimization using cross validation are applied to improve model performance. Finally, probabilistic predictions are used to explore how different classification thresholds affect decision-making in different application contexts.
+
+??? noch hier reinschreiben, welche daten ich verwende (see more in chapter 5)
 
 # 2. Re-implemention of the digital soil mapping workflow for waterlog.100
-The necessary data for this exercise was downloaded previously to the re-implementation of the workflow for the categorical variable waterlog.100. The full code for downloading and preprocessing the original data can be found in the R Markdown file and isn't included in the rendered document.
+The data required for this exercise was downloaded from the tutorial_digital_soil_mapping and preprocessed beforehand following the instructions of the tutorial and then stored in the data folder. The R Markdown file is linked to this folder, while the full code for preprocessing the raw data (see data_raw) is not shown in the rendered document.
 
 ```{r}
 # required packages
@@ -181,7 +176,7 @@ saveRDS(df_full,
 ```
 
 ## 2.1 Simple model for waterlog.100
-explanation schreiben, was waterlog.100 für eine variable ist, also ob wassergesättigt oder nicht?? oder was sagt diese variable (im dokument nachschaun)
+waterlog.100 is a binary categorical variable that indicates whether the soil is waterlogged at a depth of 100 cm. In this workflow, it is encoded as 0 (not waterlogged) and 1 (waterlogged).
 
 ### 2.1.1 Random forest for waterlog.100
 ```{r, results='hide'}
@@ -248,20 +243,15 @@ rf_basic_wl <- ranger::ranger(
   seed = 42,                          # Specify seed for randomization to reproduce the same model again
   num.threads = parallel::detectCores() - 1) # Use all but one CPU core for quick model training
 ```
-kein regression ausgeben? oder wird regression nur ausgegeben wenn continuous variable habe? und hier habe ja categorical, deshalb dann classification?? habe was falsch geändert??
+
 ```{r }
 # print a summary of the fitted model
 print(rf_basic_wl) 
 ```
-Interpretationsatz einfügen. OBB Wert erwähnen.
-with 91 independant variables and splitrule gini an OBB error of 21.49 %.
-OBB erklären was ist
+The basic random forest model for waterlog.100 used 91 predictor variables and the gini split rule. The out-of-bag (OOB) prediction error is 21.49%, which gives an estimate of how often the model makes wrong predictions on new data. This number means the model misclassified about 1 in 5 samples during training.
 
-### 2.1.2 Evaluation on the test dataset 
-Under consideration of appropriate metrics as described in AGDS Book 9.4.1.2.
-Das Kapitel als Referenz schreiben, das daraus die Infos habe wie das berechne
-confusion matrix machen?
-Accuracy testen? 
+### 2.1.2 Model performance on the test dataset 
+In the following the model is evaluated on the test data, using appropriate metrics, including the visualisation of a confusion matrix, from AGDS Book Chapter 9.4.1.2. (https://geco-bern.github.io/agds_book/regression_classification.html#metrics-for-classification).
 ```{r}
 # predictions on the test dataset (basic model, direct class predictions 0/1)
 pred_test_basic <- predict(
@@ -276,7 +266,7 @@ pred_class_basic <- pred_test_basic$predictions
 obs_class_basic <- df_test_wl[[target_wl]]
 ```
 
-```{r, fig.cap="Figure 1: Confusion Matrix for the simple model"}
+```{r, fig.cap="Figure 1: Confusion Matrix for the simple model."}
 # create confusion matrix
 cm_table_basic <- table(
   Observation = factor(obs_class_basic, levels = c(0, 1), labels = c("NoWaterlog", "Waterlog")),
@@ -284,7 +274,7 @@ cm_table_basic <- table(
 )
 
 mosaicplot(cm_table_basic,
-  main = "Confusion matrix"
+  main = "Confusion matrix (basic model)"
 )
 #    0  1
 # 0 TN  FP
@@ -321,77 +311,25 @@ metrics_basic <- data.frame(
 
 metrics_basic
 ```
-
-Analyse der Klassifikationsmetriken bei deinen Daten
-1) Prüfen, ob die Daten balanced sind
-
-Balanced bedeutet, dass ungefähr gleich viele Beobachtungen für jede Klasse vorhanden sind:
-
-- `TRUE` = Waterlog  
-- `FALSE` = NoWaterlog  
-
-Mit folgendem R-Code kannst du prüfen, ob die Daten balanced sind:
-- Werte nahe 0.5/0.5 → balanced
-- Werte weit entfernt → imbalanced
-
-The data is not balanced in terms of observed TRUE (waterlogged = 1) and FALSE (not waterlogged = 0) values. This cannot / can??? directly be seen from the confusion matrix und vom matrix output but can be made visibe by the following two code chunks:
+The basic model has an **accuracy** (overall proportion of correct predictions) of **76%**, with a **precision** (proportion of predicted waterlogged soils that are actually waterlogged) of **65%**, a **true positive rate** (proportion of actual waterlogged soils correctly predicted) of **69%**, and a **false positive rate** (proportion of non-waterlogged soils incorrectly predicted as waterlogged) of **20%**. This means the model correctly predicts most cases, but some waterlogged soils are still missed. The same information can be seen in Figure 1 (confusion matrix above), where the largest block represents the correctly predicted non-waterlogged cases (TRUE negatives).
 
 ```{r}
 # absolute frequencies of each class
 table(df_test_wl[[target_wl]])
 ```
-Die absoluten Häufigkeiten von observed waterlogged ist XX mal und von nicht waterlogged is XX mal. 
+
 ```{r}
 # percentage of each class
 prop.table(table(df_test_wl[[target_wl]]))
 ```
-Interpretation of Class Balance - The values:
-- Class `0` (NoWaterlog): 0.65 → 65% of the observations  
-- Class `1` (Waterlog): 0.35 → 35% of the observations
+The absolute frequencies of the observed classes in the test data are 70 for waterlogged (class 1) and 130 for non-waterlogged (class 0) soils. In percentages, this corresponds to 35% waterlogged and 65% non-waterlogged soils in the dataset. This means the data is not balanced because there are more non-waterlogged samples (130) than waterlogged samples (70). A balanced dataset would have roughly the same number of samples in each class. This means that accuracy alone can be misleading, since the model could be mostly correct by predicting the majority class (that is the non-waterlogged soils). Therefore it is important to also look at precision, true positive rate, and false positive rate to see how well the model predicts the waterlogged soils.
 
-For the interpretation ot the different metrics this implies that
-It's therefore important to keep in mind
-Conclusion
-
-- The dataset is **imbalanced**, because one class (NoWaterlog) appears almost twice as often as the other (Waterlog).  
-- This implies that **accuracy alone can be misleading**, since a model that always predicts the majority class would already achieve 65% accuracy.  
-- Metrics like **precision, recall, F1-score, and ROC/AUC** are more informative for evaluating model performance in this case.
-
-
-Interpretation of Classification Metrics and Your Results
-
-2) Interpretation of Metrics
-
-- **Accuracy**: This is the proportion of all observations that the model correctly classifies. It gives an overall sense of model performance but can be misleading if the data is imbalanced because the majority class can dominate the score.
-
-- **Precision**: This measures how many of the predicted positives (in your case, `Waterlog`) are actually correct. It reflects the reliability of positive predictions.
-
-- **True Positive Rate (Recall / Sensitivity)**: This is the proportion of actual positives that the model correctly identifies. It shows how well the model captures all real `Waterlog` cases.
-
-- **False Positive Rate**: This is the proportion of actual negatives (`NoWaterlog`) that are incorrectly classified as positives. It reflects the model’s tendency to produce false alarms for the negative class.
-
-**General note:**  
-- For balanced datasets, accuracy is usually meaningful and roughly aligned with precision and recall.  
-- For imbalanced datasets, precision, recall, and FPR are more informative than accuracy, because a high accuracy could be achieved by simply predicting the majority class.
-
-3)  Interpretation of Your Values
-
-Your metrics:
-
-- Accuracy: 0.765 → The model correctly classifies about 76.5% of all cases, which is clearly better than random guessing.  
-- Precision: 0.658 → About 65.8% of the predicted `Waterlog` cases are correct. Roughly one-third of positive predictions are false positives.  
-- True Positive Rate (Recall): 0.686 → The model identifies approximately 68.6% of all actual `Waterlog` cases.  
-- False Positive Rate: 0.192 → About 19.2% of `NoWaterlog` cases are incorrectly classified as `Waterlog`.
-
-**Summary:**  
-- The model performs noticeably better than chance.  
-- It captures a majority of actual `Waterlog` cases, but there is still room to reduce false positives.  
-- Precision being lower than recall suggests the model is slightly overpredicting `Waterlog` compared to the actual occurrences.
+Overall, the basic model performs better than chance and finds most of the actual waterlogged soils, but it still predicts some areas as waterlogged that are not. Because the precision is lower than the true positive rate, this means that the model predicts waterlogged soils a little too often compared to the real cases.
 
 ## 2.2 Variable selection 
+This section follows the tutorial to make the model simpler. First, variable importance is checked using the permutation method. Then Boruta is used to select the most important predictors. The model is retrained and tested to see how it performs compared to the model using all variables. The OOB error is also looked at to check the model choice.
 ### 2.2.1 Variable importance
---> jetzt zuerst variable importance machen: style = permutation; danach Boruta für selection
-Interpretation dazuschreiben, welche variablen die wichtigen sind, also welche ich dann schlussendlich behalten habe -> variablenliste anschauen, die im Tutorial hinterlegt ist
+Variable importance is first calculated using the permutation method to see which predictors contribute most to the model.
 ```{r }
 # ranger() crashes when using tibbles, so we are using the
 # base R notation to enter the data
@@ -409,8 +347,8 @@ vi_rf_basic_wl <- rf_basic_wl_$variable.importance |>
   dplyr::bind_rows() |> 
   tidyr::pivot_longer(cols = dplyr::everything(), names_to = "variable")
 ```
-stimmt das, dass es variable importance based on OBB ist?? oder based on was anderem?
-```{r, fig.height=18, fig.cap="Figure 2: Variable importance based on OBB" }
+
+```{r, fig.height=18, fig.cap="Figure 2: Variable importance based on OBB." }
 # plot variable importance, ordered by decreasing value
 gg_wl <- vi_rf_basic_wl |> 
   ggplot2::ggplot(ggplot2::aes(x = reorder(variable, value), y = value)) +
@@ -423,9 +361,11 @@ gg_wl <- vi_rf_basic_wl |>
   ggplot2::coord_flip()
 gg_wl # display plot
 ```
-dazuschreiben was man sieht, also dass welche variablen die wichtigsten sind -> das hier ist variable importance, danach kommt dann boruta selection
+Figure 2 shows that NegO (Topographic negative openness) ist the most important variable, followed by mrvbf25 (Multi-resolution valley bottom flatness at 25m resolution), Se_MRVBF2m (Multi-resolution valley bottom flatness at 2 m resolution), be_gwn25_vdist (Horizontal distance to water body at 25m resolution), Se_TWI2m (Topographic wetness index at 2 m resolution), mt_rr_y (Mean annual temperature) etc... 
+This means these variables contribute the most to the model’s predictions and explain the most variation in whether a soil is waterlogged or not (most important variables at predicting the target variable waterlog.100). (Explanations for the other variables here: https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html).
 
 ### 2.2.2 Boruta variable selection
+In the following, Boruta as a variable selection method is used to identify the most important variables and remove predictors that do not significantly improve the model.
 ```{r }
 # boruta variable selection
 set.seed(42)
@@ -445,7 +385,7 @@ df_bor_wl <- Boruta::attStats(bor_wl) |>
   dplyr::arrange(dplyr::desc(meanImp))
 ```
 
-```{r, fig.height=18, fig.cap="Figure 3: Boruta variable selection"}
+```{r, fig.height=18, fig.cap="Figure 3: Boruta variable selection."}
 # plot the importance result  
 ggplot2::ggplot(ggplot2::aes(x = reorder(rowname, meanImp), 
                              y = meanImp,
@@ -469,7 +409,7 @@ predictors_selected_wl <- df_bor_wl |>
 
 length(predictors_selected_wl)
 ```
---> 39 variablen wurden selected, das sind die rot markierten in dem plot obendrüber--> Interpretationstext schreiben welche Variablen ich nehme und wieso (siehe Variablenliste AGDS Buch, was diese bedeuten). von variable importance von davor wurden jetzt welche ausgewählt anhand von Boruta
+Using boruta, 39 variables were selected from the original set of 91 predictors for predicting the target variable waterlog.100. See figure 3 and descriptions under https://geco-bern.github.io/tutorial_digital_soil_mapping/99-variables.html for description of the abbreviations.
 
 ```{r }
 # retrain random forest model with the 39 selected predictors
@@ -484,17 +424,10 @@ rf_bor_wl <- ranger::ranger(
 # quick report and performance of retrained model object
 print(rf_bor_wl)
 ```
-Ein kleinerer OOB-Fehler ist besser.
-Das bedeutet: 20,00 % ist besser als 21,49 % → dein Random-Forest-Modell hat sich verbessert.
+The boruta based random forest model for waterlog.100 used 39 predictor variables. The out-of-bag (OOB) prediction error is 20.00% then, which is slightly lower and therefore better than the error of the basic model (which was 21.49%, see chapter 2.1.1).
 
-Der Out-of-Bag (OOB) Prediction Error ist eine interne Schätzung der Fehlklassifikationsrate des Random Forest.
-
-Ein hoher OOB-Fehler = Modell liegt häufiger falsch → schlechter
-
-Ein niedriger OOB-Fehler = Modell liegt seltener falsch → besser
-
-### 2.2.3 Model performance on test set
-compare the model performance on the test set with what was obtained with the model using all available covariates. Which model generalises better to unseen data?
+### 2.2.3 Model performance on the test dataset
+Now, the boruta model performance is tested on the test dataset (similar to what has been done in chapter 2.1.2 for the basic model).
 
 ```{r } 
 # predictions on the test dataset (retrained model, direct class predictions 0/1)
@@ -516,16 +449,14 @@ cm_table_bor <- table(
 )
 ```
 
-```{r, fig.cap="Figure 4: Confusion Matrix for Boruta variable selection"} 
+```{r, fig.cap="Figure 4: Confusion Matrix for Boruta variable selection."} 
 mosaicplot(cm_table_bor,
-  main = "Confusion matrix"
+  main = "Confusion matrix (boruta based model)"
 )
 #    0  1
 # 0 TN  FP
 # 1 FN  TP
 ```
-
-Interpretation: vergleichen mit figure 1 ob boruta variable selection auch was anzeigt, vielleicht sogar besser? wieso kann ein model mit weniger variablen besser sein? das basic model hatte alle parameter?
 
 ```{r }
 # extract TP, TN, FP, FN from the confusion matrix
@@ -557,6 +488,12 @@ metrics_bor <- data.frame(
 
 metrics_bor
 ```
+The boruta based model has an **accuracy** of **78.5%**, with a precision of **68%**, a **true positive rate** of **72.9%**, and a **false positive rate** of **18.5%**. The same pattern can be seen in Figure 2 (confusion matrix above), where the correctly predicted cases dominate.
+
+### 2.2.4 Comparison: Simple (basic) model vs. model with variable selection (boruta)
+**Which model generalises better to unseen data?**
+
+**Performance metrics:** Comparing the performance metrics of the two models shows that the boruta based model performs slightly better on the test data than the basic model. It has higher accuracy (78.5% vs. 76%), higher precision (68% vs. 64.9%), a higher true positive rate (72.9% vs. 68.6%), and a lower false positive rate (18.5% vs. 20%) than the basic model. This shows a slight improvement compared to the basic model, with about 1.5% fewer false predictions. This indicates that the boruta model generalizes slightly better to unseen data. However, the improvement is very small, and when visually comparing the two confusion matrixes (Figure 1 and Figure 4), this difference is not noticeable.
 
 ```{r } 
 # comparison of OBB prediction errors
@@ -564,30 +501,16 @@ rf_basic_wl$prediction.error
 rf_bor_wl$prediction.error
 ```
 
-### 2.2.4 Comparison simple model vs. model with variable selection
-**Which model generalises better to unseen data?**
-**performance metrics:** confusion matrixes beider outputs, simple model und variable selection anschauen und diskutieren. Auf fig x und fig y verweisen.
-schreiben ob false positive rate etc. diese dinge besser sind, also model weniger falsches vorhersagt
-Compared to the "simple model": The Boruta model performs better on every single metric, meaning it:
-misses fewer true positives,
-makes fewer false alarms,
-is more precise,
-and has higher overall accuracy.
--> This is exactly what you want from a model evaluated on unseen data. The Boruta model clearly generalises better to the test set.
-Defintion was OBB ist und was zeigt. how many false 
-**OBB comparison:**Hier schreiben, dass geringer OBB wert am besten ist. zahl oben automatischer output mit print(model_name) ergibt in %, hier im codechunk oberhalb nochmal ausgegeben als dezimalzahl (nicht gerundet). Zeigt accuracy bzw. 1-accuracy? mit OBB würde man das gleiche sagen, für boruta ist bisschen besser (also geringerer Wert) als für simple model
-Based on the independent test set, the Boruta‐selected model generalises better to unseen data: it achieves higher accuracy, precision, and true positive rate, as well as a lower false positive rate compared to the full model. The out-of-bag (OOB) errors provided by the Random Forest training procedure point in the same direction, with the Boruta model showing a slightly lower OOB error than the full model. While a smaller OOB error generally indicates better predictive performance, relying exclusively on OOB error can be problematic because it is calculated during training and may favour more complex models that do not truly generalise well. In this case, however, both the independent test set and the OOB error consistently indicate that the Boruta model performs slightly better, making it the more reliable choice.
----> frage: 
-Would the same model choice be made if we considered the OOB prediction error reported as part of the trained model object? -> nein, dann gibt es mir ein anderes ergebnis aus. aber wieso? wird OOB hier anders berechnet als oben? wieso? basierend auf anderen daten, hier auf testdaten? -> natürlich wird oob dann schlechter, weil ja weniger variablen habe die das beschreiben, also weniger detailliert??
+**OBB comparison:** 
+The out-of-bag (OOB) prediction error for the basic model is 0.214876 (~21.49%), while the boruta based model has an OOB error of 0.2 (20.00%). Since the Boruta model has a slightly lower OOB error, so YES, it would still be chosen as the better model if the decision was based only on OOB error. However, the difference is very small, so both models perform quite similarly according to the OBB results.
 
 # 3. Model optimization
 Using the training data subset, implement a 5-fold cross-validation to optimise the hyperparameters mtry and min.node.size of the same Random Forest model as implemented above. You may use the {caret} library
 Evaluate the optimized model on the test set using the same metrics as considered above. Does the model generalise better to unseen data than the initial model (which used default hyperparameters, see ?ranger::ranger) 
 
-For the hyperparameter tuning I use the approach, given in the AGDS book with the common default values mtry = sqrt(p) for classification (p=number of predictions). The values 1,3,5,10,15,20 are used for .min.node.size to avoid possible overfitting when the model creates overly deep trees with very small terminal nodes.
-
-habe xy ausprobiert -> 2x anzeigen
 ## 3.1 Hyperparameter tuning
+For the hyperparameter tuning I use the approach, given in the AGDS book (this chapter: https://geco-bern.github.io/agds_book/randomforest.html#from-trees-to-a-forest) with the common default values mtry = sqrt(p) for classification (p=number of predictions). The values 1,3,5,10,15,20 are used for .min.node.size to avoid possible overfitting when the model creates overly deep trees with very small terminal nodes.
+
 ```{r }
 # define hyperparameter grid for tuning
 pp <- recipes::recipe(
@@ -607,9 +530,11 @@ tune_grid <- expand.grid(
   .splitrule = "gini"                   # standard splitrule for classification
 )
 ```
-sqrt und floor war im AGDS book -> also quelle dazu schreiben wie ich p berechnet habe, in welchem kapitel stand das?
-```{r, results='hide'}
+
+```{r, message=FALSE}
 # train a random forest with 5-fold cross validation
+set.seed(42)  # set seed for reproducibility
+
 mod_cv <- caret::train(
   pp,
   data = df_train_wl |> drop_na(),
@@ -617,19 +542,19 @@ mod_cv <- caret::train(
   trControl = trainControl(method = "cv", number = 5, savePredictions = "final"),
   tuneGrid = tune_grid,
   metric = "Accuracy",
-  num.trees = 2000, # may take some computation time, reduce for faster computation
-  seed = 42
+  num.trees = 2000 # may take some computation time, reduce for faster computation
 )
 ```
-ist nicht sensitiv, ist ein wert einfach
-```{r }
+
+```{r, message=FALSE, warning=FALSE}
 print(mod_cv) # print cross validation results
 ```
 
-```{r, fig.cap="Figure 5: Visualisation of the tuning hyperparameters"}
+```{r, message=FALSE, warning=FALSE, fig.cap="Figure 5: Visualisation of the tuning hyperparameters."}
 ggplot(mod_cv) # visualize tuning hyperparameters results
 ```
-For the classification of the tuning parameters the splitrule "gini" and the metric "Accuracy" was used. The final values used for the model with a number of 2000 trees, were mtry = 6, and min.node.size = 20, giving an accuracy of 0.7884246. Since the plot does not show a clear separation between the different numbers of randomly selected predictors (the .mtry values), we can assume that the model is not particularly sensitive to the choice of randomly selected predictors.
+
+For the classification of the tuning parameters the splitrule "gini" and the metric "Accuracy" was used. The final values used for the model with a number of 2000 trees, were mtry = 8, and min.node.size = 5, giving an accuracy of 0.7982676. The plot (figure 5) shows that the differences in cross-validation accuracy between the different mtry-values (4, 6, 8) are very small (varies only slightly between about 0.785 and 0.798). (This indicates that the performance of the model is not very sensitive (not really big differences in accuracy) to the choice of the number of randomly selected predictors.)
 
 ## 3.2 Evaluation on the test dataset
 ```{r }
@@ -645,11 +570,7 @@ true_class_cv <- factor(df_test_wl[[target_wl]],
                         labels = c("NoWaterlog", "Waterlog"))
 ```
 
-evaluate model noch: so war im buch
-eval_model(mod = mod, df_train = ddf_train, df_test = ddf_test)
-oder habe ich mit confusion matrix evaluation gemacht??
-
-```{r, fig.cap="Figure 6: Confusion matrix for optimized RF"}
+```{r, fig.cap="Figure 6: Confusion matrix for optimized random forest model."}
 # confusion matrix
 cm_table_cv <- table(
   Observation = true_class_cv,
@@ -657,10 +578,8 @@ cm_table_cv <- table(
 )
 
 # mosaicplot
-mosaicplot(cm_table_cv, main = "Confusion matrix (Optimized RF with tuned hyperparameters)")
+mosaicplot(cm_table_cv, main = "Confusion matrix (optimized RF with tuned hyperparameters)")
 ```
-
-falls mosaic plot mache, dann auch abbildungsunterschrift mosaicplot for optimised model und muss vergleichen mit den plots von before (boruta und basic am anfang)
 
 ```{r }
 # evaluation of the optimized model
@@ -687,15 +606,17 @@ metrics_cv <- data.frame(
 
 metrics_cv
 ```
-## 3.3 Comparison initial model vs. model with tuned hyperparameters 
-Metrics-ergebnisse hier sind noch besser als die Ergebnisse von davor von boruta und von Anfang simple model
-Result Hyperparameters auch ausgeben noch, also welche kamen jetzt raus als gute hyperparameter am ende und welche waren default im model zuerst??
 
-vergleichen mit dem initial model. hier interpretation schreiben wie diese beiden models
-also vergleichen mit boruta oder mit simple model? oder mit beiden vergleichen am besten, vermutlich ist eher boruta gemeint, weil mache hier ja auch model optimization auf basis von boruta model. simple model verwende ich ja gar nicht weiter. ja benutze predictors selected dafür, also meine 39 selected.
-Does the model generalise better to unseen data than the initial model (which used default hyperparameters, see ?ranger::ranger --> das noch nachschauen was das ausgibt 
-stand auch im buch das für klassifikation default mäßig folgendes benutzt wird: 
-From the R help documentation one can read that for ranger::ranger the default hyperparameters for classification are as follows: 
+The optimized model achieved an accuracy of 78.0%, with a precision of 67.1%, a true positive rate of 72.9%, and a false positive rate of 19.2%. A similar pattern is visible in Figure 6 (confusion matrix of the optimised model), where it can be seen that the correctly predicted cases are the majority.
+
+## 3.3 Comparison initial model (basic model) vs. model with tuned hyperparameters 
+From the R help documentation, one can read that for ranger::ranger the default hyperparameters for classification are as follows: num.trees = 500, mtry = sqrt(p) (rounded) (where p is the number of predictors), min.node.size = 1 , and splitrule = gini. 
+Using these defaults, the initial basic model achieved an accuracy of 76.0%, a precision of 64.9%, a true positive rate of 68.6%, and a false positive rate of 20.0%.
+The optimized model, in which hyperparameters (.mtry and min.node.size) were tuned, achieved slightly higher accuracy (78.0%), precision (67.1%), and true positive rate (72.9%), and slightly lower false positive rate (19.2%). This indicates that hyperparameter tuning provided a modest improvement over the basic model. 
+Looking at the confusion matrix of the basic model (Figure 1) and the optimized model (Figure 6), the false positives and false negatives are a bit smaller in the optimized model. But the differences are small, so it is hard to see a clear improvement just from the confusion matrices.
+????????????
+Comment on the performance of the boruta model (no hyperparameter tuning): Using 39 selected features, performed better than the hyperparameter-tuned model based on the same features. It achieved 78.5% accuracy, 68% precision, 72.9% true positive rate, and 18.5% false positive rate, while the tuned model was slightly worse. This shows that, in this case, tuning the hyperparameters did not improve performance.
+??????????? irgendwie dazuschreiben, dass davor robuster war?? wieso macht man hyperparameter tuning trotzdem?? vielleicht extra um weniger computation?? 
 
 # 4. Probabilistic predictions
 ## 4.1 Random forest model with optimised hyperparameters
@@ -715,7 +636,6 @@ rf_bor_wl_prob <- ranger(
 )
 ```
 
-!!!!!hierfür brauche quelle wie ich den code wusste, weil steht nicht im AGDS buch, doch in buch für geodata 1, Kapitel angeben als referenz?????????
 ```{r}
 # predict probabilities on the test dataset
 pred_prob <- predict(rf_bor_wl_prob, data = df_test_wl)$predictions
@@ -729,7 +649,7 @@ true_class <- as.numeric(as.character(df_test_wl[[target_wl]]))
 
 ## 4.2 Reicever-operating-characteristic (ROC) curve
 I used the information from the pROC package (https://search.r-project.org/CRAN/refmans/pROC/html/pROC-package.html) for plotting the ROC curve.
-```{r, results='hide'}
+```{r, message=FALSE, warning=FALSE}
 # calculate ROC (receiver operating characteristic curce) & AUC (area under curve)
 roc_obj <- roc(true_class, prob_waterlog)
 auc_val <- auc(roc_obj)
@@ -741,10 +661,10 @@ roc_df <- data.frame(
 )
 ```
 
-```{r, fig.cap="Figure 7: ROC curve"}
+```{r, message=FALSE, warning=FALSE, fig.cap="Figure 7: ROC curve."}
 # plot ROC curve
 ggplot(roc_df, aes(x = FPR, y = TPR)) +
-  geom_line(color = "blue", size = 1.2) +                                      # ROC line
+  geom_line(color = "blue", linewidth = 1.2) +                                      # ROC line
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +  # random classifier line
   labs(
     title = paste0("ROC Curve (AUC = ", round(auc_val, 3), ")"),
@@ -758,102 +678,15 @@ ggplot(roc_df, aes(x = FPR, y = TPR)) +
     panel.grid.minor = element_blank()
   )
 ```
-
-The ROC analysis resulted in an AUC of approximately 0.80, indicating good discriminatory performance of the model.
-An AUC value of 0.80 suggests that the model is able to reliably distinguish between waterlogged and non-waterlogged conditions.
--> AUC kann man aber auch weglassen
-
-geom_line() → zeigt die ROC-Kurve (TPR vs. FPR).
-geom_abline() → gestrichelte Diagonale, die zufällige Klassifikation darstellt.
-AUC wird im Titel angezeigt, gibt die Gesamtleistung an (0.5 = Zufall, 1 = perfekte Trennung).
-Je näher die blaue Linie an der oberen linken Ecke, desto besser trennt das Modell Waterlog von NoWaterlog
-1. ROC-Kurve allgemein
-Die blaue Linie zeigt, wie gut dein Modell zwischen „Waterlog“ und „NoWaterlog“ trennt, wenn du den Schwellenwert von 0 bis 1 variierst.
-Die diagonale rote Linie entspricht Zufall (TPR = FPR, also ein vollkommen nutzloses Modell).
-Je weiter die blaue Linie links oben liegt, desto besser das Modell.
-AUC (Area Under the Curve):
-Werte zwischen 0.5 und 1.0.
-AUC = 0.5 → Zufall.
-AUC = 1 → perfektes Modell.
-Je näher an 1, desto besser.
-2. Punkte für bestimmte Thresholds
-Jeder Punkt zeigt, welche TPR und FPR du bekommst, wenn du genau diesen Threshold verwendest.
-Beispiel: Threshold = 0.5
-TPR = Anteil der echten Waterlog-Fälle, die korrekt erkannt werden.
-FPR = Anteil der NoWaterlog-Fälle, die fälschlicherweise als Waterlog klassifiziert werden.
-Niedrigere Thresholds → mehr „positiv“ klassifiziert → höhere TPR, aber auch höhere FPR.
-Höhere Thresholds → vorsichtiger → weniger False Positives, aber TPR sinkt.
-3. Entscheidungsfindung
-Du wählst den Threshold je nach Risiko/Anwendung:
-Kritische Anwendung (z.B. Bauprojekt): Lieber niedriger Threshold → keine nassen Böden übersehen → mehr False Positives akzeptieren.
-Unkritische Anwendung: Höherer Threshold → weniger Fehlalarme, TPR könnte etwas sinken.
-4. Praktische Hinweise
-Die Punkte auf der Kurve helfen dir zu visualisieren:
-„Wenn ich Threshold = 0.2 nehme, wie viele True Positives vs. False Positives bekomme ich?“
-„Wenn ich Threshold = 0.8 nehme, wie konservativ bin ich?“
-Du siehst direkt den Trade-off zwischen Sensitivity und Specificity.
-Wenn du willst, kann ich dir eine kurze Anleitung schreiben, wie man automatisch den optimalen Threshold nach Youden-Index aus der ROC-Kurve ermittelt und den Punkt auf dem Plot markiert – das wird im AGDS Buch so empfohlen.
-Willst du, dass ich das mache?
-Ja, genau! Die Threshold-Punkte liegen direkt auf der blauen ROC-Linie.
-Das bedeutet:
-Jeder Punkt zeigt, welches TPR/FPR-Verhältnis dein Modell erzielt, wenn du genau diesen Threshold wählst.
-Die blaue Linie selbst zeigt alle möglichen Thresholds von 0 bis 1.
-Die Punkte sind nur Markierungen für bestimmte Schwellenwerte, damit du sehen kannst, wie sich die Klassifikation bei diesen Thresholds verhält.
-Was du daraus lesen kannst:
-Trade-off zwischen Sensitivity und Specificity
-Niedriger Threshold → Punkt weiter oben rechts: hohe Sensitivity (mehr echte Positives erkannt), aber auch hohe FPR (mehr falsche Positives).
-Hoher Threshold → Punkt weiter unten links: niedrige FPR (weniger falsche Positives), aber auch niedrige Sensitivity (mehr echte Positives verpasst).
-Vergleich verschiedener Thresholds
-Die Punkte machen sichtbar, welche Thresholds „aggressiv“ oder „konservativ“ klassifizieren.
-Beispiel:
-Threshold 0.2 → konservativ für positives Vorhersagen, Punkt weit oben rechts.
-Threshold 0.8 → sehr vorsichtig, Punkt weit unten links
-Optimale Threshold-Auswahl
-Du kannst anhand der Punkte sehen, welcher Threshold einen guten Kompromiss zwischen TPR und FPR bietet.
-Oft wird Youden-Index genutzt: Threshold, bei dem (TPR - FPR) maximal ist.
-Also kurz gesagt:
-Punkte auf der Linie = Modellleistung bei diesen Schwellenwerten.
-Höhe links oben = gute Trennung zwischen Klassen.
-Bewegung entlang der Linie zeigt, wie sich Sensitivity und FPR ändern, wenn du den Threshold änderst.
-
-TPR (Sensitivity)
-1 ┤       •  Threshold 0.2 (aggressiv, viele True Positives, aber auch FPs)
-  │      /
-  │     /
-0.8 ┤    •  Threshold 0.5 (ausgewogen)
-  │   /
-  │  /
-0.6 ┤ •  Threshold 0.8 (vorsichtig, wenige FPs, aber auch weniger TPs)
-  │/
-0 └──────────────────────── FPR (1 - Specificity)
-  0   0.2   0.4   0.6   0.8   1
-Blaue Linie = ROC-Kurve für alle möglichen Thresholds
-
-Punkte = bestimmte Thresholds, die du z.B. 0.2, 0.5, 0.8 ausgewählt hast
-FPR = Anteil der negativen Fälle, die fälschlicherweise als positiv vorhergesagt wurden
-TPR = Anteil der positiven Fälle, die korrekt erkannt wurden
-ROC-Kurve zeigt Performance des probabilistischen Modells
--> Interpreation der Kurve: 
-
-threshold interpretation: 
-When informing a project where waterlogged soils are critical for stability, a low threshold should be chosen. This prioritizes sensitivity, ensuring most waterlogged areas are detected, even if false alarms occur. In contrast, for a project where waterlogging is unwanted but not critical, a higher threshold is preferable, reducing false positives at the cost of missing some waterlogged areas.
-
-Thresholds should therefore differ depending on the scenario. A similar analogy can be found in medicine: for a critical diagnosis like cancer, a low threshold is used to avoid missing patients, whereas for routine checks of minor conditions, a higher threshold avoids unnecessary interventions.
+In the plot, the ROC (Receiver Operating Characteristic) curve shows the true positive rate (TPR) versus the false positive rate (FPR) for different threshold values. The diagonal red line represents a random classifier (AUC = 0.5), while the blue line illustrates the model’s performance. The closer the blue line is to the top-left corner, the better the separation between the two classes waterlogged/not waterlogged (points higher on the line (toward the top-left) mean the model correctly identifies more waterlogged areas (higher TPR) while making fewer mistakes on non-waterlogged areas (lower FPR)).The AUC for my model is approximately 0.8 , indicating a good ability to distinguish between waterlogged and non-waterlogged conditions (AUC of 1 would indicate a perfect model). The blue line also demonstrates how TPR and FPR change across all possible thresholds. The threshold is the probability cut-off used to turn predicted probabilities into a yes/no classification. A lower threshold labels more cases as positive (catches more true positives but also more false positives) and a higher threshold is more conservative (reduces false positives but missing some true positives). 
 
 ## 4.3 Choice / Interpretation of threshold
-  Consider you inform an infrastructure construction project where waterlogged soils     severely jeopardize the stability of the building. Then, consider you inform a project where waterlogged soils are unwanted, but not critical. In both cases, your prediction map of a binary classification is used as a basis and the binary classification is derived from the probabilistic prediction. How would you chose the threshold in each case? Would you chose the same threshold in both cases? If not, explain why. Can you think of an analogy of a similarly-natured problem in another realm?
-- Diskutiere zwei Szenarien:
-    1. Kritisch: Wasserlog ist sehr problematisch für ein Bauprojekt → lieber konservativ
-    niedriger Schwellenwert, damit keine nassen Böden übersehen werden.
-    2. Unkritisch: Wasserlog ist unerwünscht, aber nicht gefährlich → höherer 
-    Schwellenwert, um Fehlalarme zu vermeiden.
-- Beantworte:
-    - Würdest du in beiden Fällen denselben Schwellenwert wählen? (→ Nein, je nach Risiko unterschiedlich.)
-    - Gib ein analoges Beispiel aus einem anderen Bereich (z. B. Medizin: Krebsdiagnose vs. Routinekontrolle).
-Variable list noch anschauen, die im Tutorial hinterlegt ist
+For a project where waterlogged soils critically affect stability, a low threshold should be chosen to maximize the detection of all waterlogged areas, even if it increases the false alarms. For a project where waterlogging is unwanted but not critical, a higher threshold is preferable to reduce false positives, with accepting that some waterlogged areas may be missed. The thresholds are different for eacht case because the risk tolerance differs. 
+Another analogy can be found in medical testing: For example for a critical disease like cancer, a low threshold is used to avoid missing cases, while for minor conditions (e.g. a normal mild winter cold) missing a few cases is not dangerous, and it avoids unnecessary interventions. This is similar to choosing a higher threshold for a non-critical waterlogging project.
 
 # 5. References & Declaration of Authorship
-I hereby declare, that I wrote this report myself. It is based on foundational codes and general information from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/r-code.html) was used as a helpful guide on markdown syntax.
+I hereby declare, that I wrote this report myself. It is based on foundational codes and general information from the tutorial "Digital Soil Mapping - Predicting soil properties from spatial data" by Pascal Schneider, Benjamin Stocker, Madlene Nussbaum (2023) (https://geco-bern.github.io/tutorial_digital_soil_mapping/), general information from the book "Applied Geodata Science (v1.0)" by Benjamin Stocker et. al (2023) and informations from the lectures (held by Prof. Dr. Benjamin Stocker & Dr. Fabian Bernhard). All additional sources of information can be found in this section and were cited in the text. Last but not least "R Markdown: The Definitive Guide" by Yihui Xie, J. J. Allaire and Garrett Grolemund (2023) (available here: https://bookdown.org/yihui/rmarkdown/r-code.html) was used as a helpful guide on markdown syntax.
+
 ?????????? chat für problem with the curve???
 
 **Data**
@@ -862,3 +695,13 @@ soil data: soil properties (including ?? wieviele variabeln) from locations acro
 climate: climatic variables (???). Numerisch
 
 **Other Literature**
+hier nochmal html links nennen, R dokumentation for ranger::ranger und für pROC. und markdown schreiben. AGDS book welche kapitel.
+for interpretation and how to read a ROC curve also 
+Wright, M. N., & Ziegler, A. (2017).
+ranger: A Fast Implementation of Random Forests for High Dimensional Data in C++ and R.
+Journal of Statistical Software, 77(1), 1–17.
+https://doi.org/10.18637/jss.v077.i01
+Zur ROC-Kurve:
+Xavier Robin et al. (2011).
+pROC: an open-source package for R and S+ to analyze and compare ROC curves.
+BMC Bioinformatics 12:77.
